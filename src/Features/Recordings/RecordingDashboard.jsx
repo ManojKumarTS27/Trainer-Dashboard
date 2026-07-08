@@ -12,6 +12,7 @@ function RecordingDashboard() {
       title: "Introduction to React",
       videoName: "react-session.mp4",
       duration: "45 mins",
+      videoURL: "",
     },
   ]);
 
@@ -52,16 +53,43 @@ function RecordingDashboard() {
             {recordings.map((recording) => (
               <div className="recording-card" key={recording.id}>
                 <div className="recording-icon">🎥</div>
+
                 <h3>{recording.title}</h3>
+
                 <p>
                   <strong>Session:</strong> {recording.session}
                 </p>
+
                 <p>
                   <strong>Video:</strong> {recording.videoName}
                 </p>
+
                 <p>
                   <strong>Duration:</strong> {recording.duration}
                 </p>
+
+                {recording.videoURL ? (
+                  <>
+                    <video className="recording-video" controls>
+                      <source
+                        src={recording.videoURL}
+                        type={recording.video?.type}
+                      />
+                      Your browser does not support the video tag.
+                    </video>
+
+                    <a
+                      href={recording.videoURL}
+                      download={recording.videoName}
+                      className="download-btn"
+                    >
+                      Download Video
+                    </a>
+                  </>
+                ) : (
+                  <p className="no-video">Sample video preview not available</p>
+                )}
+
                 <span className="recording-id">{recording.id}</span>
               </div>
             ))}

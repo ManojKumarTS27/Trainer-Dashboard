@@ -1,7 +1,18 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./RecordingDashboard.css";
 
-function UploadRecordingModal({ sessions, onClose, onUpload }) {
+function UploadRecordingModal() {
+  const navigate = useNavigate();
+
+  const sessions = [
+    "React Basics",
+    "JavaScript Advanced",
+    "MongoDB Session",
+    "Node.js Backend",
+    "Digital Classroom Training",
+  ];
+
   const [formData, setFormData] = useState({
     session: "",
     title: "",
@@ -34,7 +45,6 @@ function UploadRecordingModal({ sessions, onClose, onUpload }) {
     if (!formData.duration.trim()) newErrors.duration = "Duration is required";
 
     setErrors(newErrors);
-
     return Object.keys(newErrors).length === 0;
   };
 
@@ -45,14 +55,24 @@ function UploadRecordingModal({ sessions, onClose, onUpload }) {
 
     const newRecording = {
       id: `REC-${Date.now()}`,
-      session: formData.session,
-      title: formData.title,
-      videoName: formData.video.name,
+      sessionName: formData.title,
       duration: formData.duration,
+      uploadedDate: new Date().toISOString().split("T")[0],
+      fileName: formData.video.name,
     };
 
-    onUpload(newRecording);
-    onClose();
+    const oldRecordings =
+      JSON.parse(localStorage.getItem("uploadedRecordings")) || [];
+
+    const updatedRecordings = [...oldRecordings, newRecording];
+
+    localStorage.setItem(
+      "uploadedRecordings",
+      JSON.stringify(updatedRecordings)
+    );
+
+    alert("Recording uploaded successfully!");
+    navigate("/session-recordings");
   };
 
   return (
@@ -60,7 +80,12 @@ function UploadRecordingModal({ sessions, onClose, onUpload }) {
       <div className="upload-modal">
         <div className="modal-header">
           <h2>Upload Recording</h2>
-          <button className="close-btn" onClick={onClose}>
+
+          <button
+            type="button"
+            className="close-btn"
+            onClick={() => navigate("/session-recordings")}
+          >
             ×
           </button>
         </div>
