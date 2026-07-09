@@ -1,0 +1,231 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.session-page {
+  min-height: 100vh;
+  padding: 40px;
+  background:
+    radial-gradient(circle at top left, #8d9fe8, transparent 35%),
+    radial-gradient(circle at bottom right, #6c4ff0, transparent 35%),
+    #1578db;
+}
+
+.session-header {
+  background: rgba(255, 255, 255, 0.92);
+  padding: 34px;
+  border-radius: 30px;
+  margin-bottom: 34px;
+  box-shadow: 0 25px 70px rgba(79, 70, 229, 0.16);
+}
+
+.session-header h1 {
+  font-size: 36px;
+  color: #111827;
+}
+
+.session-header p {
+  color: #6b7280;
+  margin-top: 8px;
+}
+
+.session-layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 28px;
+}
+
+.session-form,
+.session-content {
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: 26px;
+  padding: 28px;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.14);
+}
+
+.session-form h2 {
+  margin-bottom: 20px;
+  color: #111827;
+}
+
+.session-form input,
+.session-form select,
+.session-form textarea,
+.filters input,
+.filters select {
+  width: 100%;
+  padding: 13px 15px;
+  margin-bottom: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  font-size: 15px;
+  outline: none;
+}
+
+.session-form textarea {
+  min-height: 100px;
+  resize: none;
+}
+
+.session-form input:focus,
+.session-form select:focus,
+.session-form textarea:focus,
+.filters input:focus,
+.filters select:focus {
+  border-color: #4f46e5;
+}
+
+.submit-btn,
+.cancel-btn,
+.clear-btn,
+.join-btn,
+.edit-btn,
+.delete-btn {
+  border: none;
+  padding: 12px 18px;
+  border-radius: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.submit-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: white;
+}
+
+.cancel-btn {
+  width: 100%;
+  margin-top: 10px;
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr auto;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.clear-btn {
+  height: 47px;
+  background: #111827;
+  color: white;
+}
+
+.session-list {
+  display: grid;
+  gap: 20px;
+}
+
+.session-card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.card-top h3 {
+  color: #111827;
+  font-size: 23px;
+}
+
+.card-top p {
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.status {
+  padding: 8px 14px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.status.upcoming {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status.live {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status.completed {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.details-grid p,
+.description {
+  color: #374151;
+}
+
+.description {
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+
+.card-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.join-btn {
+  background: #16a34a;
+  color: white;
+}
+
+.edit-btn {
+  background: #f59e0b;
+  color: white;
+}
+
+.delete-btn {
+  background: #ef4444;
+  color: white;
+}
+
+.empty-box {
+  text-align: center;
+  padding: 40px;
+  border-radius: 20px;
+  background: #f9fafb;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .session-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+}

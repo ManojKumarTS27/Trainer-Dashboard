@@ -25,7 +25,9 @@ function TrainerDashboard() {
   const handleNotify = (sessionId) => {
     setSessions((prevSessions) =>
       prevSessions.map((session) =>
-        session.id === sessionId ? { ...session, notified: true } : session
+        session.id === sessionId
+          ? { ...session, notified: true }
+          : session
       )
     );
 
@@ -41,8 +43,13 @@ function TrainerDashboard() {
       <main className="admin-main">
         <div className="welcome-card">
           <span>TRAINER DASHBOARD</span>
+
           <h1>Live Class Management</h1>
-          <p>Create sessions, notify students, and start digital classrooms.</p>
+
+          <p>
+            Create sessions, notify students, manage recordings and conduct
+            virtual classrooms.
+          </p>
 
           <div className="dashboard-actions">
             <button
@@ -60,10 +67,17 @@ function TrainerDashboard() {
             </button>
 
             <button
+              className="session-management-btn"
+              onClick={() => navigate("/session-management")}
+            >
+              📚 Session Management
+            </button>
+
+            <button
               className="create-session-btn"
               onClick={() => setShowModal(true)}
             >
-              + Create Live Session
+              ➕ Create Live Session
             </button>
           </div>
         </div>
@@ -72,13 +86,16 @@ function TrainerDashboard() {
           {sessions.length === 0 ? (
             <div className="dash-card">
               <span>EMPTY</span>
+
               <h2>No Sessions</h2>
+
               <p>No sessions scheduled yet.</p>
             </div>
           ) : (
             sessions.map((session) => (
               <div className="dash-card" key={session.id}>
                 <span>{session.id}</span>
+
                 <h2>{session.batch}</h2>
 
                 <p>
@@ -104,7 +121,7 @@ function TrainerDashboard() {
                   className="start-btn"
                   onClick={() => handleStartSession(session.id)}
                 >
-                  Start Session
+                  ▶ Start Session
                 </button>
               </div>
             ))

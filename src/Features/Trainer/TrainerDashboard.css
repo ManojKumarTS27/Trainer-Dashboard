@@ -241,3 +241,13 @@
     width: 100%;
   }
 }
+.session-management-btn {
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  color: white;
+  border: none;
+  padding: 13px 20px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}

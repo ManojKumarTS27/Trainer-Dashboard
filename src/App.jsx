@@ -4,11 +4,13 @@ import TrainerDashboard from "./features/trainer/TrainerDashboard";
 import RecordingDashboard from "./features/recordings/RecordingDashboard";
 import SessionRecordings from "./features/recordings/SessionRecordings";
 import UploadRecordingModal from "./features/recordings/UploadRecordingModal";
+import SessionManagement from "./features/sessions/SessionManagement";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
+
         <Route
           path="/"
           element={<Navigate to="/trainer-dashboard" replace />}
@@ -34,6 +36,11 @@ function App() {
           element={<UploadRecordingModal />}
         />
 
+        <Route
+          path="/session-management"
+          element={<SessionManagement />}
+        />
+        
         <Route
           path="*"
           element={<Navigate to="/trainer-dashboard" replace />}
