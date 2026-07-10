@@ -51,18 +51,14 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Root */}
         <Route path="/" element={<HomeRedirect />} />
 
-        {/* Public */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route
           path="/access-denied"
           element={<AccessDenied />}
         />
-
-        {/* Student */}
         <Route
           path="/student-dashboard"
           element={
@@ -74,7 +70,6 @@ function App() {
           }
         />
 
-        {/* Teacher */}
         <Route
           path="/teacher-dashboard"
           element={
@@ -86,7 +81,6 @@ function App() {
           }
         />
 
-        {/* Employer */}
         <Route
           path="/employer-dashboard"
           element={
@@ -98,7 +92,6 @@ function App() {
           }
         />
 
-        {/* Employee */}
         <Route
           path="/employee-dashboard"
           element={
@@ -110,7 +103,6 @@ function App() {
           }
         />
 
-        {/* Admin */}
         <Route
           path="/admin-dashboard"
           element={
@@ -122,7 +114,6 @@ function App() {
           }
         />
 
-        {/* Shared Protected Pages */}
         <Route
           path="/recording-dashboard"
           element={

@@ -45,7 +45,6 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Remove password when sending user data
 userSchema.methods.toJSON = function () {
   const user = this.toObject();
   delete user.password;

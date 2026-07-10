@@ -11,12 +11,6 @@ import { authorizeRoles } from "../Middleware/roleMiddleware.js";
 
 const router = express.Router();
 
-/*
-====================================================
-Student Dashboard
-Student + Admin
-====================================================
-*/
 router.get(
   "/student-dashboard",
   authenticateUser,
@@ -30,12 +24,7 @@ router.get(
   }
 );
 
-/*
-====================================================
-Teacher Dashboard
-Teacher + Admin
-====================================================
-*/
+
 router.get(
   "/teacher-dashboard",
   authenticateUser,
@@ -49,12 +38,7 @@ router.get(
   }
 );
 
-/*
-====================================================
-Employer Dashboard
-Employer + Admin
-====================================================
-*/
+
 router.get(
   "/employer-dashboard",
   authenticateUser,
@@ -68,12 +52,7 @@ router.get(
   }
 );
 
-/*
-====================================================
-Employee Dashboard
-Employee + Admin
-====================================================
-*/
+
 router.get(
   "/employee-dashboard",
   authenticateUser,
@@ -87,12 +66,7 @@ router.get(
   }
 );
 
-/*
-====================================================
-Admin Dashboard
-Only Admin
-====================================================
-*/
+
 router.get(
   "/admin-dashboard",
   authenticateUser,
@@ -106,11 +80,7 @@ router.get(
   }
 );
 
-/*
-====================================================
-Admin - Get All Users
-====================================================
-*/
+
 router.get(
   "/users",
   authenticateUser,
@@ -118,11 +88,7 @@ router.get(
   getAllUsers
 );
 
-/*
-====================================================
-Admin - Update User Role
-====================================================
-*/
+
 router.patch(
   "/users/:userId/role",
   authenticateUser,
@@ -130,11 +96,7 @@ router.patch(
   updateUserRole
 );
 
-/*
-====================================================
-Admin - Enable / Disable User
-====================================================
-*/
+
 router.patch(
   "/users/:userId/status",
   authenticateUser,

@@ -31,7 +31,6 @@ input {
     #1578db;
 }
 
-/* Header */
 
 .recordings-header {
   max-width: 1400px;
@@ -86,7 +85,6 @@ input {
   box-shadow: 0 10px 24px rgba(17, 24, 39, 0.25);
 }
 
-/* Main content */
 
 .recordings-card {
   max-width: 1400px;
@@ -99,7 +97,6 @@ input {
   box-shadow: 0 25px 65px rgba(0, 0, 0, 0.15);
 }
 
-/* Search */
 
 .search-input {
   width: 100%;
@@ -126,7 +123,6 @@ input {
   box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
 }
 
-/* Recording grid */
 
 .recording-grid {
   display: grid;
@@ -196,7 +192,6 @@ input {
   color: #1f2937;
 }
 
-/* Buttons */
 
 .recording-actions {
   display: flex;
@@ -274,7 +269,6 @@ input {
   transform: scale(0.96);
 }
 
-/* Empty state */
 
 .empty-box {
   grid-column: 1 / -1;
@@ -300,8 +294,6 @@ input {
   color: #6b7280;
   line-height: 1.6;
 }
-
-/* Video modal */
 
 .video-modal {
   position: fixed;
@@ -386,7 +378,7 @@ input {
   outline: none;
 }
 
-/* Scrollbar */
+
 
 .video-container::-webkit-scrollbar {
   width: 8px;
@@ -401,8 +393,6 @@ input {
   background: #818cf8;
   border-radius: 20px;
 }
-
-/* Responsive */
 
 @media (max-width: 900px) {
   .recordings-page {

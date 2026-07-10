@@ -10,17 +10,14 @@ function RoleProtectedRoute({
     localStorage.getItem("authUser") || "null"
   );
 
-  // Not logged in
   if (!token || !user) {
     return <Navigate to="/login" replace />;
   }
 
-  // Invalid role
   if (!user.role) {
     return <Navigate to="/access-denied" replace />;
   }
 
-  // Unauthorized role
   if (!allowedRoles.includes(user.role)) {
     return <Navigate to="/access-denied" replace />;
   }

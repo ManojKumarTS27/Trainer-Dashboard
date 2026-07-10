@@ -124,8 +124,7 @@ body {
   font-size: 25px;
   font-weight: 800;
 }
-
-/* Form */
+ 
 
 .session-form form {
   display: flex;
@@ -197,7 +196,6 @@ body {
   transform: scale(0.97);
 }
 
-/* Empty state */
 
 .empty-box {
   padding: 55px 25px;
@@ -291,7 +289,6 @@ body {
   font-weight: 600;
 }
 
-/* Status badges */
 
 .status-badge {
   display: inline-flex;
@@ -320,7 +317,6 @@ body {
   color: #374151;
 }
 
-/* Delete button */
 
 .delete-btn {
   border: none;
@@ -345,8 +341,6 @@ body {
   box-shadow: 0 8px 18px rgba(239, 68, 68, 0.28);
 }
 
-/* Scrollbar */
-
 .session-table-wrapper::-webkit-scrollbar {
   height: 9px;
 }
@@ -365,7 +359,6 @@ body {
   background: #4f46e5;
 }
 
-/* Responsive */
 
 @media (max-width: 1100px) {
   .session-page {

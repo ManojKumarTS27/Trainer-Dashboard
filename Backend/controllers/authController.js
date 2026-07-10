@@ -70,8 +70,6 @@ export const registerUser = async (req, res) => {
   }
 };
 
-// ================= LOGIN =================
-
 export const loginUser = async (req, res) => {
   try {
     const email = req.body.email?.trim().toLowerCase();
@@ -136,7 +134,6 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// ================= CURRENT USER =================
 
 export const getCurrentUser = async (req, res) => {
   try {
@@ -163,9 +160,6 @@ export const getCurrentUser = async (req, res) => {
   }
 };
 
-// ================= ADMIN =================
-
-// Get all users
 
 export const getAllUsers = async (req, res) => {
   try {
@@ -184,7 +178,6 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-// Update Role
 
 export const updateUserRole = async (req, res) => {
   try {
@@ -234,7 +227,6 @@ export const updateUserRole = async (req, res) => {
   }
 };
 
-// Enable / Disable User
 
 export const updateUserStatus = async (req, res) => {
   try {
