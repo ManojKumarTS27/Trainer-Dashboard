@@ -2,168 +2,254 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./SessionRecordings.css";
 
-const defaultRecordings = [
-  {
-    id: "REC-1001",
-    sessionName: "React Basics",
-    duration: "45 mins",
-    uploadedDate: "2026-07-08",
-    fileName: "react-basics.mp4",
-    fileUrl: "",
-  },
-  {
-    id: "REC-1002",
-    sessionName: "JavaScript Advanced",
-    duration: "55 mins",
-    uploadedDate: "2026-07-08",
-    fileName: "javascript-advanced.mp4",
-    fileUrl: "",
-  },
-];
+function getStoredUser() {
+  try {
+    return JSON.parse(
+      localStorage.getItem("authUser") || "null"
+    );
+  } catch {
+    return null;
+  }
+}
+
+function getStoredRecordings() {
+  try {
+    const storedRecordings = JSON.parse(
+      localStorage.getItem("uploadedRecordings") || "[]"
+    );
+
+    return Array.isArray(storedRecordings)
+      ? storedRecordings
+      : [];
+  } catch {
+    return [];
+  }
+}
 
 function SessionRecordings() {
   const navigate = useNavigate();
-  const [selectedVideo, setSelectedVideo] = useState(null);
 
-  const [recordings, setRecordings] = useState(() => {
-    const uploadedRecordings =
-      JSON.parse(localStorage.getItem("uploadedRecordings")) || [];
+  const [user] = useState(getStoredUser);
+  const [recordings, setRecordings] = useState(
+    getStoredRecordings
+  );
+  const [search, setSearch] = useState("");
+  const [selectedVideo, setSelectedVideo] =
+    useState(null);
 
-    return [...defaultRecordings, ...uploadedRecordings];
-  });
+  const deleteRecording = (recordingId) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this recording?"
+    );
 
-  const handlePlay = (recording) => {
-    if (!recording.fileUrl) {
-      alert("This is a sample recording. Upload a real video to play.");
+    if (!confirmDelete) {
       return;
     }
 
-    setSelectedVideo(recording);
+    setRecordings((previousRecordings) => {
+      const updatedRecordings =
+        previousRecordings.filter(
+          (recording) =>
+            recording.id !== recordingId
+        );
+
+      localStorage.setItem(
+        "uploadedRecordings",
+        JSON.stringify(updatedRecordings)
+      );
+
+      return updatedRecordings;
+    });
+
+    if (selectedVideo?.id === recordingId) {
+      setSelectedVideo(null);
+    }
   };
 
-  const handleDownload = (recording) => {
+  const downloadRecording = (recording) => {
     if (!recording.fileUrl) {
-      alert("This is a sample recording.");
+      alert("Video unavailable.");
       return;
     }
 
     const link = document.createElement("a");
+
     link.href = recording.fileUrl;
-    link.download = recording.fileName;
+    link.download =
+      recording.fileName || "recording.mp4";
+
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
   };
 
-  const handleDelete = (recordingId) => {
-    if (window.confirm("Are you sure you want to delete this recording?")) {
-      const updated = recordings.filter(
-        (recording) => recording.id !== recordingId
-      );
+  const filteredRecordings = recordings.filter(
+    (recording) => {
+      const sessionName =
+        recording.sessionName || "";
 
-      setRecordings(updated);
-
-      const uploadedOnly = updated.filter(
-        (recording) =>
-          recording.id !== "REC-1001" && recording.id !== "REC-1002"
-      );
-
-      localStorage.setItem(
-        "uploadedRecordings",
-        JSON.stringify(uploadedOnly)
-      );
+      return sessionName
+        .toLowerCase()
+        .includes(search.trim().toLowerCase());
     }
-  };
+  );
+
+  const canManageRecordings =
+    user?.role === "Teacher" ||
+    user?.role === "Admin";
 
   return (
     <div className="recordings-page">
-      <div className="recordings-card">
-        <div className="recordings-header">
-          <div>
-            <h1>Session Recordings</h1>
-            <p>Manage, play, download, and delete session recordings</p>
-          </div>
+      <div className="recordings-header">
+        <div>
+          <h1>Session Recordings</h1>
 
-          <button
-            className="back-btn"
-            onClick={() => navigate("/trainer-dashboard")}
-          >
-            ← Trainer Dashboard
-          </button>
+          <p>
+            Search, watch and manage recordings
+          </p>
         </div>
 
-        <div className="recordings-table-wrapper">
-          <table className="recordings-table">
-            <thead>
-              <tr>
-                <th>Recording ID</th>
-                <th>Session Name</th>
-                <th>Duration</th>
-                <th>Uploaded Date</th>
-                <th>File Name</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
+        <button
+          type="button"
+          className="back-btn"
+          onClick={() => navigate("/")}
+        >
+          Dashboard
+        </button>
+      </div>
 
-            <tbody>
-              {recordings.length > 0 ? (
-                recordings.map((recording) => (
-                  <tr key={recording.id}>
-                    <td>{recording.id}</td>
-                    <td>{recording.sessionName}</td>
-                    <td>{recording.duration}</td>
-                    <td>{recording.uploadedDate}</td>
-                    <td>{recording.fileName}</td>
+      <div className="recordings-card">
+        <input
+          type="search"
+          className="search-input"
+          placeholder="Search session..."
+          value={search}
+          onChange={(event) =>
+            setSearch(event.target.value)
+          }
+        />
 
-                    <td>
-                      <div className="action-buttons">
-                        <button
-                          className="play-btn"
-                          onClick={() => handlePlay(recording)}
-                        >
-                          ▶ Play
-                        </button>
+        <div className="recording-grid">
+          {filteredRecordings.length === 0 ? (
+            <div className="empty-box">
+              <h3>No recordings found</h3>
+              <p>
+                Upload a recording or try another
+                search.
+              </p>
+            </div>
+          ) : (
+            filteredRecordings.map((recording) => (
+              <div
+                key={recording.id}
+                className="recording-card"
+              >
+                <h3>
+                  {recording.sessionName ||
+                    "Untitled Session"}
+                </h3>
 
-                        <button
-                          className="download-btn"
-                          onClick={() => handleDownload(recording)}
-                        >
-                          ⬇ Download
-                        </button>
+                <p>
+                  <strong>Duration:</strong>{" "}
+                  {recording.duration ||
+                    "Not provided"}
+                </p>
 
-                        <button
-                          className="delete-btn"
-                          onClick={() => handleDelete(recording.id)}
-                        >
-                          🗑 Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="6" className="empty-recordings">
-                    No recordings available.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                <p>
+                  <strong>Date:</strong>{" "}
+                  {recording.uploadedDate ||
+                    "Not provided"}
+                </p>
+
+                <p>
+                  <strong>File:</strong>{" "}
+                  {recording.fileName ||
+                    "No file name"}
+                </p>
+
+                <div className="recording-actions">
+                  <button
+                    type="button"
+                    className="play-btn"
+                    onClick={() =>
+                      setSelectedVideo(recording)
+                    }
+                  >
+                    Play
+                  </button>
+
+                  <button
+                    type="button"
+                    className="download-btn"
+                    onClick={() =>
+                      downloadRecording(recording)
+                    }
+                  >
+                    Download
+                  </button>
+
+                  {canManageRecordings && (
+                    <button
+                      type="button"
+                      className="delete-btn"
+                      onClick={() =>
+                        deleteRecording(recording.id)
+                      }
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
       {selectedVideo && (
-        <div className="video-modal-overlay">
-          <div className="video-modal">
-            <div className="video-modal-header">
-              <h2>{selectedVideo.sessionName}</h2>
+        <div className="video-modal">
+          <div className="video-container">
+            <div className="video-header">
+              <h2>
+                {selectedVideo.sessionName ||
+                  "Session Recording"}
+              </h2>
 
-              <button onClick={() => setSelectedVideo(null)}>×</button>
+              <button
+                type="button"
+                className="close-btn"
+                onClick={() =>
+                  setSelectedVideo(null)
+                }
+              >
+                ✕
+              </button>
             </div>
 
-            <video controls autoPlay className="video-player">
-              <source src={selectedVideo.fileUrl} type="video/mp4" />
-              Your browser does not support video playback.
-            </video>
+            {selectedVideo.fileUrl ? (
+              <video
+                controls
+                autoPlay
+                className="video-player"
+              >
+                <source
+                  src={selectedVideo.fileUrl}
+                  type="video/mp4"
+                />
+
+                Your browser does not support video
+                playback.
+              </video>
+            ) : (
+              <div className="empty-box">
+                <h3>Video Not Available</h3>
+
+                <p>
+                  This recording does not contain
+                  an uploaded video file.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}

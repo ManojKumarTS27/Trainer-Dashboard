@@ -1,300 +1,374 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./SessionManagement.css";
 
-const defaultSessions = [
-  {
-    id: "SES-1001",
-    sessionName: "React Basics",
-    trainerName: "Arun Kumar",
-    date: "2026-07-10",
-    time: "10:00",
-    duration: "45 mins",
-    status: "Upcoming",
-    description: "Introduction to React components and props.",
-  },
-  {
-    id: "SES-1002",
-    sessionName: "JavaScript Advanced",
-    trainerName: "Priya Sharma",
-    date: "2026-07-09",
-    time: "14:30",
-    duration: "60 mins",
-    status: "Live",
-    description: "Advanced JavaScript concepts.",
-  },
-];
+const emptyForm = {
+  sessionName: "",
+  trainerName: "",
+  date: "",
+  time: "",
+  duration: "",
+  status: "Upcoming",
+};
+
+function getStoredUser() {
+  try {
+    return JSON.parse(
+      localStorage.getItem("authUser") || "null"
+    );
+  } catch (error) {
+    console.error(
+      "Unable to read authenticated user:",
+      error
+    );
+
+    return null;
+  }
+}
+
+function getStoredSessions() {
+  try {
+    const storedSessions = JSON.parse(
+      localStorage.getItem("sessions") || "[]"
+    );
+
+    return Array.isArray(storedSessions)
+      ? storedSessions
+      : [];
+  } catch (error) {
+    console.error(
+      "Unable to read stored sessions:",
+      error
+    );
+
+    return [];
+  }
+}
 
 function SessionManagement() {
-  const [sessions, setSessions] = useState(defaultSessions);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [dateFilter, setDateFilter] = useState("");
-  const [editingId, setEditingId] = useState(null);
+  const navigate = useNavigate();
 
-  const [form, setForm] = useState({
-    sessionName: "",
-    trainerName: "",
-    date: "",
-    time: "",
-    duration: "",
-    status: "Upcoming",
-    description: "",
-  });
+  const [user] = useState(getStoredUser);
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const [sessions, setSessions] = useState(
+    getStoredSessions
+  );
 
-  const resetForm = () => {
-    setForm({
-      sessionName: "",
-      trainerName: "",
-      date: "",
-      time: "",
-      duration: "",
-      status: "Upcoming",
-      description: "",
-    });
-    setEditingId(null);
-  };
+  const [form, setForm] = useState(emptyForm);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    const token = localStorage.getItem("token");
 
-    if (
-      !form.sessionName ||
-      !form.trainerName ||
-      !form.date ||
-      !form.time ||
-      !form.duration
-    ) {
-      alert("Please fill all required fields");
+    if (!user || !token) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("authUser");
+      localStorage.removeItem("isLoggedIn");
+
+      navigate("/login", { replace: true });
       return;
     }
 
-    if (editingId) {
-      setSessions((prev) =>
-        prev.map((session) =>
-          session.id === editingId ? { ...session, ...form } : session
-        )
-      );
-    } else {
-      const newSession = {
-        id: `SES-${Date.now().toString().slice(-4)}`,
-        ...form,
-      };
+    if (
+      user.role !== "Teacher" &&
+      user.role !== "Admin"
+    ) {
+      navigate("/access-denied", {
+        replace: true,
+      });
+    }
+  }, [navigate, user]);
 
-      setSessions((prev) => [newSession, ...prev]);
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    setForm((previousForm) => ({
+      ...previousForm,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+
+    const sessionData = {
+      sessionName: form.sessionName.trim(),
+      trainerName: form.trainerName.trim(),
+      date: form.date,
+      time: form.time,
+      duration: form.duration.trim(),
+      status: form.status,
+    };
+
+    if (
+      !sessionData.sessionName ||
+      !sessionData.trainerName ||
+      !sessionData.date ||
+      !sessionData.time ||
+      !sessionData.duration
+    ) {
+      alert("Please fill in all required fields.");
+      return;
     }
 
-    resetForm();
-  };
+    const newSession = {
+      id: `SES-${Date.now()}`,
+      ...sessionData,
+    };
 
-  const handleEdit = (session) => {
-    setEditingId(session.id);
-    setForm({
-      sessionName: session.sessionName,
-      trainerName: session.trainerName,
-      date: session.date,
-      time: session.time,
-      duration: session.duration,
-      status: session.status,
-      description: session.description,
+    setSessions((previousSessions) => {
+      const updatedSessions = [
+        newSession,
+        ...previousSessions,
+      ];
+
+      localStorage.setItem(
+        "sessions",
+        JSON.stringify(updatedSessions)
+      );
+
+      return updatedSessions;
     });
+
+    setForm(emptyForm);
+
+    alert("Session created successfully.");
   };
 
-  const handleDelete = (id) => {
+  const deleteSession = (sessionId) => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this session?"
     );
 
-    if (confirmDelete) {
-      setSessions((prev) => prev.filter((session) => session.id !== id));
+    if (!confirmDelete) {
+      return;
     }
+
+    setSessions((previousSessions) => {
+      const updatedSessions =
+        previousSessions.filter(
+          (session) => session.id !== sessionId
+        );
+
+      localStorage.setItem(
+        "sessions",
+        JSON.stringify(updatedSessions)
+      );
+
+      return updatedSessions;
+    });
   };
 
-  const handleJoin = (session) => {
-    alert(`Joining virtual classroom: ${session.sessionName}`);
-  };
-
-  const filteredSessions = sessions.filter((session) => {
-    const matchesSearch = session.sessionName
-      .toLowerCase()
-      .includes(search.toLowerCase());
-
-    const matchesStatus =
-      statusFilter === "All" || session.status === statusFilter;
-
-    const matchesDate = !dateFilter || session.date === dateFilter;
-
-    return matchesSearch && matchesStatus && matchesDate;
-  });
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="session-page">
       <div className="session-header">
         <div>
           <h1>Session Management</h1>
-          <p>Manage scheduled training sessions and virtual classes</p>
+
+          <p>
+            Logged in as{" "}
+            <strong>
+              {user.name || "User"} ({user.role})
+            </strong>
+          </p>
         </div>
+
+        <button
+          type="button"
+          className="back-btn"
+          onClick={() => navigate("/")}
+        >
+          Dashboard
+        </button>
       </div>
 
       <div className="session-layout">
-        <form className="session-form" onSubmit={handleSubmit}>
-          <h2>{editingId ? "Edit Session" : "Add New Session"}</h2>
+        <div className="session-form">
+          <h2>Create Session</h2>
 
-          <input
-            type="text"
-            name="sessionName"
-            placeholder="Session Name"
-            value={form.sessionName}
-            onChange={handleChange}
-          />
+          <form onSubmit={handleSubmit}>
+            <label htmlFor="sessionName">
+              Session Name
+            </label>
 
-          <input
-            type="text"
-            name="trainerName"
-            placeholder="Trainer Name"
-            value={form.trainerName}
-            onChange={handleChange}
-          />
-
-          <input
-            type="date"
-            name="date"
-            value={form.date}
-            onChange={handleChange}
-          />
-
-          <input
-            type="time"
-            name="time"
-            value={form.time}
-            onChange={handleChange}
-          />
-
-          <input
-            type="text"
-            name="duration"
-            placeholder="Duration eg: 45 mins"
-            value={form.duration}
-            onChange={handleChange}
-          />
-
-          <select name="status" value={form.status} onChange={handleChange}>
-            <option value="Upcoming">Upcoming</option>
-            <option value="Live">Live</option>
-            <option value="Completed">Completed</option>
-          </select>
-
-          <textarea
-            name="description"
-            placeholder="Description"
-            value={form.description}
-            onChange={handleChange}
-          />
-
-          <button type="submit" className="submit-btn">
-            {editingId ? "Update Session" : "Add Session"}
-          </button>
-
-          {editingId && (
-            <button type="button" className="cancel-btn" onClick={resetForm}>
-              Cancel Edit
-            </button>
-          )}
-        </form>
-
-        <div className="session-content">
-          <div className="filters">
             <input
+              id="sessionName"
               type="text"
-              placeholder="Search by session name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              name="sessionName"
+              placeholder="Enter session name"
+              value={form.sessionName}
+              onChange={handleChange}
+              required
             />
+
+            <label htmlFor="trainerName">
+              Trainer Name
+            </label>
+
+            <input
+              id="trainerName"
+              type="text"
+              name="trainerName"
+              placeholder="Enter trainer name"
+              value={form.trainerName}
+              onChange={handleChange}
+              required
+            />
+
+            <label htmlFor="date">
+              Session Date
+            </label>
+
+            <input
+              id="date"
+              type="date"
+              name="date"
+              value={form.date}
+              onChange={handleChange}
+              required
+            />
+
+            <label htmlFor="time">
+              Session Time
+            </label>
+
+            <input
+              id="time"
+              type="time"
+              name="time"
+              value={form.time}
+              onChange={handleChange}
+              required
+            />
+
+            <label htmlFor="duration">
+              Duration
+            </label>
+
+            <input
+              id="duration"
+              type="text"
+              name="duration"
+              placeholder="Example: 45 mins"
+              value={form.duration}
+              onChange={handleChange}
+              required
+            />
+
+            <label htmlFor="status">
+              Status
+            </label>
 
             <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              id="status"
+              name="status"
+              value={form.status}
+              onChange={handleChange}
             >
-              <option value="All">All Status</option>
-              <option value="Upcoming">Upcoming</option>
-              <option value="Live">Live</option>
-              <option value="Completed">Completed</option>
+              <option value="Upcoming">
+                Upcoming
+              </option>
+
+              <option value="Live">
+                Live
+              </option>
+
+              <option value="Completed">
+                Completed
+              </option>
             </select>
 
-            <input
-              type="date"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-            />
-
-            <button className="clear-btn" onClick={() => setDateFilter("")}>
-              Clear Date
+            <button
+              className="submit-btn"
+              type="submit"
+            >
+              Save Session
             </button>
-          </div>
+          </form>
+        </div>
 
-          <div className="session-list">
-            {filteredSessions.length === 0 ? (
-              <div className="empty-box">No sessions found</div>
-            ) : (
-              filteredSessions.map((session) => (
-                <div className="session-card" key={session.id}>
-                  <div className="card-top">
-                    <div>
-                      <h3>{session.sessionName}</h3>
-                      <p>{session.id}</p>
-                    </div>
+        <div className="session-content">
+          <h2>All Sessions</h2>
 
-                    <span className={`status ${session.status.toLowerCase()}`}>
-                      {session.status}
-                    </span>
-                  </div>
+          {sessions.length === 0 ? (
+            <div className="empty-box">
+              <h3>No sessions available</h3>
 
-                  <div className="details-grid">
-                    <p>
-                      <strong>Trainer:</strong> {session.trainerName}
-                    </p>
-                    <p>
-                      <strong>Date:</strong> {session.date}
-                    </p>
-                    <p>
-                      <strong>Time:</strong> {session.time}
-                    </p>
-                    <p>
-                      <strong>Duration:</strong> {session.duration}
-                    </p>
-                  </div>
+              <p>
+                Create your first training session
+                using the form.
+              </p>
+            </div>
+          ) : (
+            <div className="session-table-wrapper">
+              <table className="session-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Session</th>
+                    <th>Trainer</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Duration</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
 
-                  <p className="description">{session.description}</p>
+                <tbody>
+                  {sessions.map((session) => (
+                    <tr key={session.id}>
+                      <td>{session.id}</td>
 
-                  <div className="card-actions">
-                    <button
-                      className="join-btn"
-                      onClick={() => handleJoin(session)}
-                    >
-                      Join Session
-                    </button>
+                      <td>
+                        {session.sessionName}
+                      </td>
 
-                    <button
-                      className="edit-btn"
-                      onClick={() => handleEdit(session)}
-                    >
-                      Edit
-                    </button>
+                      <td>
+                        {session.trainerName}
+                      </td>
 
-                    <button
-                      className="delete-btn"
-                      onClick={() => handleDelete(session.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+                      <td>{session.date}</td>
+
+                      <td>{session.time}</td>
+
+                      <td>
+                        {session.duration ||
+                          "Not provided"}
+                      </td>
+
+                      <td>
+                        <span
+                          className={`status-badge ${String(
+                            session.status ||
+                              "Upcoming"
+                          ).toLowerCase()}`}
+                        >
+                          {session.status ||
+                            "Upcoming"}
+                        </span>
+                      </td>
+
+                      <td>
+                        <button
+                          type="button"
+                          className="delete-btn"
+                          onClick={() =>
+                            deleteSession(session.id)
+                          }
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,138 +1,314 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CreateSessionModal from "./CreateSessionModal";
 import "./TrainerDashboard.css";
 
-function TrainerDashboard() {
-  const navigate = useNavigate();
-  const [showModal, setShowModal] = useState(false);
+const dashboardRoutes = {
+  Student: "/student-dashboard",
+  Teacher: "/teacher-dashboard",
+  Employer: "/employer-dashboard",
+  Employee: "/employee-dashboard",
+  Admin: "/admin-dashboard",
+};
 
-  const [sessions, setSessions] = useState([
-    {
-      id: "ROOM-123456",
-      batch: "Batch A - React",
-      date: "2026-07-06",
-      time: "10:30",
-      notified: false,
-    },
-  ]);
+function getStoredUser() {
+  try {
+    return JSON.parse(
+      localStorage.getItem("authUser") || "null"
+    );
+  } catch (error) {
+    console.error("Unable to read authenticated user:", error);
+    return null;
+  }
+}
 
-  const handleCreateSession = (newSession) => {
-    setSessions((prevSessions) => [newSession, ...prevSessions]);
-    setShowModal(false);
-  };
-
-  const handleNotify = (sessionId) => {
-    setSessions((prevSessions) =>
-      prevSessions.map((session) =>
-        session.id === sessionId
-          ? { ...session, notified: true }
-          : session
-      )
+function getStoredSessions() {
+  try {
+    const storedSessions = JSON.parse(
+      localStorage.getItem("sessions") || "[]"
     );
 
-    alert("Students notified successfully!");
+    return Array.isArray(storedSessions)
+      ? storedSessions
+      : [];
+  } catch (error) {
+    console.error("Unable to read sessions:", error);
+    return [];
+  }
+}
+
+function TrainerDashboard() {
+  const navigate = useNavigate();
+
+  const [user] = useState(getStoredUser);
+
+  const [showCreateModal, setShowCreateModal] =
+    useState(false);
+
+  const [sessions, setSessions] = useState(
+    getStoredSessions
+  );
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (!user || !token) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("authUser");
+      localStorage.removeItem("isLoggedIn");
+
+      navigate("/login", { replace: true });
+      return;
+    }
+
+    if (!dashboardRoutes[user.role]) {
+      navigate("/access-denied", {
+        replace: true,
+      });
+    }
+  }, [navigate, user]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("authUser");
+    localStorage.removeItem("isLoggedIn");
+
+    navigate("/login", { replace: true });
   };
 
-  const handleStartSession = (sessionId) => {
-    navigate(`/digital-classroom/${sessionId}`);
+  const handleCreateSession = (newSession) => {
+    const normalizedSession = {
+      id: newSession.id || `SES-${Date.now()}`,
+
+      sessionName:
+        newSession.sessionName ||
+        newSession.batch ||
+        "Untitled Session",
+
+      batch:
+        newSession.batch ||
+        newSession.sessionName ||
+        "Not provided",
+
+      trainerName:
+        newSession.trainerName ||
+        user?.name ||
+        "Not provided",
+
+      date: newSession.date || "",
+
+      time: newSession.time || "",
+
+      duration:
+        newSession.duration || "Not provided",
+
+      status:
+        newSession.status || "Upcoming",
+
+      ...newSession,
+    };
+
+    setSessions((previousSessions) => {
+      const updatedSessions = [
+        normalizedSession,
+        ...previousSessions,
+      ];
+
+      localStorage.setItem(
+        "sessions",
+        JSON.stringify(updatedSessions)
+      );
+
+      return updatedSessions;
+    });
   };
+
+  if (!user) {
+    return null;
+  }
+
+  const isTeacherOrAdmin =
+    user.role === "Teacher" ||
+    user.role === "Admin";
 
   return (
-    <div className="admin-dashboard">
-      <main className="admin-main">
-        <div className="welcome-card">
-          <span>TRAINER DASHBOARD</span>
-
-          <h1>Live Class Management</h1>
+    <div className="trainer-dashboard">
+      <header className="dashboard-header">
+        <div>
+          <h1>
+            Welcome, {user.name || "User"}
+          </h1>
 
           <p>
-            Create sessions, notify students, manage recordings and conduct
-            virtual classrooms.
+            Role: <strong>{user.role}</strong>
           </p>
+        </div>
 
-          <div className="dashboard-actions">
-            <button
-              className="recording-btn"
-              onClick={() => navigate("/recording-dashboard")}
-            >
-              🎥 Recording Dashboard
-            </button>
+        <button
+          type="button"
+          className="logout-btn"
+          onClick={handleLogout}
+        >
+          Logout
+        </button>
+      </header>
 
-            <button
-              className="session-recordings-btn"
-              onClick={() => navigate("/session-recordings")}
-            >
-              📹 Session Recordings
-            </button>
+      <div className="dashboard-grid">
+        {isTeacherOrAdmin && (
+          <div className="dashboard-card">
+            <h2>Create Session</h2>
 
-            <button
-              className="session-management-btn"
-              onClick={() => navigate("/session-management")}
-            >
-              📚 Session Management
-            </button>
+            <p>
+              Schedule a new virtual classroom.
+            </p>
 
             <button
-              className="create-session-btn"
-              onClick={() => setShowModal(true)}
+              type="button"
+              onClick={() =>
+                setShowCreateModal(true)
+              }
             >
-              ➕ Create Live Session
+              Open
             </button>
           </div>
+        )}
+
+        {isTeacherOrAdmin && (
+          <div className="dashboard-card">
+            <h2>Session Management</h2>
+
+            <p>
+              Create, view and manage training
+              sessions.
+            </p>
+
+            <button
+              type="button"
+              onClick={() =>
+                navigate("/session-management")
+              }
+            >
+              Open
+            </button>
+          </div>
+        )}
+
+        <div className="dashboard-card">
+          <h2>Recording Dashboard</h2>
+
+          <p>
+            View and manage uploaded recordings.
+          </p>
+
+          <button
+            type="button"
+            onClick={() =>
+              navigate("/recording-dashboard")
+            }
+          >
+            Open
+          </button>
         </div>
 
-        <div className="dashboard-cards">
+        <div className="dashboard-card">
+          <h2>Session Recordings</h2>
+
+          <p>
+            Watch previously uploaded session
+            recordings.
+          </p>
+
+          <button
+            type="button"
+            onClick={() =>
+              navigate("/session-recordings")
+            }
+          >
+            Open
+          </button>
+        </div>
+
+        <div className="dashboard-card full-width">
+          <h2>Recent Sessions</h2>
+
           {sessions.length === 0 ? (
-            <div className="dash-card">
-              <span>EMPTY</span>
+            <div className="empty-box">
+              <h3>No sessions created yet</h3>
 
-              <h2>No Sessions</h2>
-
-              <p>No sessions scheduled yet.</p>
+              <p>
+                Teacher or Admin users can create
+                a new session.
+              </p>
             </div>
           ) : (
-            sessions.map((session) => (
-              <div className="dash-card" key={session.id}>
-                <span>{session.id}</span>
+            <div className="session-table-wrapper">
+              <table className="session-table">
+                <thead>
+                  <tr>
+                    <th>Session ID</th>
+                    <th>Session</th>
+                    <th>Trainer</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Duration</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
 
-                <h2>{session.batch}</h2>
+                <tbody>
+                  {sessions
+                    .slice(0, 10)
+                    .map((session) => (
+                      <tr key={session.id}>
+                        <td>{session.id}</td>
 
-                <p>
-                  <strong>Date:</strong> {session.date}
-                  <br />
-                  <strong>Time:</strong> {session.time}
-                </p>
+                        <td>
+                          {session.sessionName ||
+                            session.batch ||
+                            "Untitled Session"}
+                        </td>
 
-                {session.notified ? (
-                  <button className="notified-btn" disabled>
-                    ✓ Students Notified
-                  </button>
-                ) : (
-                  <button
-                    className="notify-btn"
-                    onClick={() => handleNotify(session.id)}
-                  >
-                    Notify Students
-                  </button>
-                )}
+                        <td>
+                          {session.trainerName ||
+                            "Not provided"}
+                        </td>
 
-                <button
-                  className="start-btn"
-                  onClick={() => handleStartSession(session.id)}
-                >
-                  ▶ Start Session
-                </button>
-              </div>
-            ))
+                        <td>
+                          {session.date ||
+                            "Not provided"}
+                        </td>
+
+                        <td>
+                          {session.time ||
+                            "Not provided"}
+                        </td>
+
+                        <td>
+                          {session.duration ||
+                            "Not provided"}
+                        </td>
+
+                        <td>
+                          {session.status ||
+                            "Upcoming"}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
-      </main>
+      </div>
 
-      {showModal && (
+      {showCreateModal && (
         <CreateSessionModal
-          onClose={() => setShowModal(false)}
-          onCreateSession={handleCreateSession}
+          onClose={() =>
+            setShowCreateModal(false)
+          }
+          onCreateSession={
+            handleCreateSession
+          }
         />
       )}
     </div>

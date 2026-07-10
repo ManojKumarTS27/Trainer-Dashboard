@@ -5,149 +5,153 @@ import "./RecordingDashboard.css";
 function UploadRecordingModal() {
   const navigate = useNavigate();
 
-  const sessions = [
-    "React Basics",
-    "JavaScript Advanced",
-    "MongoDB Session",
-    "Node.js Backend",
-    "Digital Classroom Training",
-  ];
-
-  const [formData, setFormData] = useState({
-    session: "",
-    title: "",
-    video: null,
+  const [form, setForm] = useState({
+    sessionName: "",
     duration: "",
+    video: null,
   });
 
-  const [errors, setErrors] = useState({});
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
 
-    setFormData({
-      ...formData,
-      [name]: files ? files[0] : value,
-    });
+    if (files) {
+      setForm((prev) => ({
+        ...prev,
+        video: files[0],
+      }));
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
 
-    setErrors({
-      ...errors,
-      [name]: "",
-    });
+    setError("");
   };
 
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.session) newErrors.session = "Please select a session";
-    if (!formData.title.trim()) newErrors.title = "Recording title is required";
-    if (!formData.video) newErrors.video = "Please upload a video";
-    if (!formData.duration.trim()) newErrors.duration = "Duration is required";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleUpload = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    if (
+      !form.sessionName ||
+      !form.duration ||
+      !form.video
+    ) {
+      setError("Please complete all fields.");
+      return;
+    }
 
-    const newRecording = {
-      id: `REC-${Date.now()}`,
-      sessionName: formData.title,
-      duration: formData.duration,
-      uploadedDate: new Date().toISOString().split("T")[0],
-      fileName: formData.video.name,
+    const recording = {
+      id: Date.now().toString(),
+      sessionName: form.sessionName,
+      duration: form.duration,
+      uploadedDate: new Date()
+        .toISOString()
+        .split("T")[0],
+      fileName: form.video.name,
+      fileUrl: URL.createObjectURL(form.video),
     };
 
-    const oldRecordings =
-      JSON.parse(localStorage.getItem("uploadedRecordings")) || [];
+    const recordings = JSON.parse(
+      localStorage.getItem("uploadedRecordings") ||
+        "[]"
+    );
 
-    const updatedRecordings = [...oldRecordings, newRecording];
+    recordings.unshift(recording);
 
     localStorage.setItem(
       "uploadedRecordings",
-      JSON.stringify(updatedRecordings)
+      JSON.stringify(recordings)
     );
 
-    alert("Recording uploaded successfully!");
-    navigate("/session-recordings");
+    alert("Recording uploaded successfully.");
+
+    navigate("/recording-dashboard");
   };
 
   return (
     <div className="modal-overlay">
+
       <div className="upload-modal">
-        <div className="modal-header">
-          <h2>Upload Recording</h2>
 
-          <button
-            type="button"
-            className="close-btn"
-            onClick={() => navigate("/session-recordings")}
-          >
-            ×
-          </button>
-        </div>
+        <h2>Upload Recording</h2>
 
-        <form onSubmit={handleUpload}>
-          <div className="form-group">
-            <label>Session</label>
-            <select
-              name="session"
-              value={formData.session}
-              onChange={handleChange}
+        <form onSubmit={handleSubmit}>
+
+          <label>Session Name</label>
+
+          <input
+            type="text"
+            name="sessionName"
+            value={form.sessionName}
+            onChange={handleChange}
+            placeholder="React Basics"
+          />
+
+          <label>Duration</label>
+
+          <input
+            type="text"
+            name="duration"
+            value={form.duration}
+            onChange={handleChange}
+            placeholder="45 mins"
+          />
+
+          <label>Video File</label>
+
+          <input
+            type="file"
+            accept="video/*"
+            onChange={handleChange}
+          />
+
+          {error && (
+            <p
+              style={{
+                color: "red",
+                marginTop: "10px",
+              }}
             >
-              <option value="">Select Session</option>
-              {sessions.map((session, index) => (
-                <option key={index} value={session}>
-                  {session}
-                </option>
-              ))}
-            </select>
-            {errors.session && <span>{errors.session}</span>}
+              {error}
+            </p>
+          )}
+
+          <div
+            style={{
+              display: "flex",
+              gap: "15px",
+              marginTop: "20px",
+            }}
+          >
+
+            <button
+              className="submit-btn"
+              type="submit"
+            >
+              Upload
+            </button>
+
+            <button
+              type="button"
+              className="cancel-btn"
+              onClick={() =>
+                navigate(
+                  "/recording-dashboard"
+                )
+              }
+            >
+              Cancel
+            </button>
+
           </div>
 
-          <div className="form-group">
-            <label>Recording Title</label>
-            <input
-              type="text"
-              name="title"
-              placeholder="Enter recording title"
-              value={formData.title}
-              onChange={handleChange}
-            />
-            {errors.title && <span>{errors.title}</span>}
-          </div>
-
-          <div className="form-group">
-            <label>Upload Video</label>
-            <input
-              type="file"
-              name="video"
-              accept="video/*"
-              onChange={handleChange}
-            />
-            {errors.video && <span>{errors.video}</span>}
-          </div>
-
-          <div className="form-group">
-            <label>Duration</label>
-            <input
-              type="text"
-              name="duration"
-              placeholder="Example: 45 mins"
-              value={formData.duration}
-              onChange={handleChange}
-            />
-            {errors.duration && <span>{errors.duration}</span>}
-          </div>
-
-          <button type="submit" className="submit-btn">
-            Upload
-          </button>
         </form>
+
       </div>
+
     </div>
   );
 }
