@@ -6,6 +6,7 @@ import process from "node:process";
 import connectDB from "./Config/db.js";
 import authRoutes from "./Routes/authRoutes.js";
 import protectedRoutes from "./Routes/protectedRoutes.js";
+import attendanceRoutes from "./Routes/attendanceRoutes.js";
 
 dotenv.config();
 
@@ -41,7 +42,10 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+
 app.use("/api/protected", protectedRoutes);
+
+app.use("/api/attendance", attendanceRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
@@ -51,13 +55,22 @@ app.use((req, res) => {
 });
 
 const startServer = async () => {
-  await connectDB();
+  try {
+    await connectDB();
 
-  app.listen(PORT, () => {
-    console.log(
-      `Server running at http://localhost:${PORT}`
+    app.listen(PORT, () => {
+      console.log(
+        `Server running at http://localhost:${PORT}`
+      );
+    });
+  } catch (error) {
+    console.error(
+      "Unable to start server:",
+      error.message
     );
-  });
+
+    process.exit(1);
+  }
 };
 
 startServer();
