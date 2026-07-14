@@ -51,10 +51,6 @@ const attendanceSchema = new mongoose.Schema(
   }
 );
 
-/*
-  One user can have only one attendance record
-  for a particular session.
-*/
 attendanceSchema.index(
   {
     userId: 1,

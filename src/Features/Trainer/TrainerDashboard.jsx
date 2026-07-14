@@ -17,7 +17,11 @@ function getStoredUser() {
       localStorage.getItem("authUser") || "null"
     );
   } catch (error) {
-    console.error("Unable to read authenticated user:", error);
+    console.error(
+      "Unable to read authenticated user:",
+      error
+    );
+
     return null;
   }
 }
@@ -32,7 +36,11 @@ function getStoredSessions() {
       ? storedSessions
       : [];
   } catch (error) {
-    console.error("Unable to read sessions:", error);
+    console.error(
+      "Unable to read sessions:",
+      error
+    );
+
     return [];
   }
 }
@@ -42,8 +50,10 @@ function TrainerDashboard() {
 
   const [user] = useState(getStoredUser);
 
-  const [showCreateModal, setShowCreateModal] =
-    useState(false);
+  const [
+    showCreateModal,
+    setShowCreateModal,
+  ] = useState(false);
 
   const [sessions, setSessions] = useState(
     getStoredSessions
@@ -57,7 +67,10 @@ function TrainerDashboard() {
       localStorage.removeItem("authUser");
       localStorage.removeItem("isLoggedIn");
 
-      navigate("/login", { replace: true });
+      navigate("/login", {
+        replace: true,
+      });
+
       return;
     }
 
@@ -73,12 +86,18 @@ function TrainerDashboard() {
     localStorage.removeItem("authUser");
     localStorage.removeItem("isLoggedIn");
 
-    navigate("/login", { replace: true });
+    navigate("/login", {
+      replace: true,
+    });
   };
 
-  const handleCreateSession = (newSession) => {
+  const handleCreateSession = (
+    newSession
+  ) => {
     const normalizedSession = {
-      id: newSession.id || `SES-${Date.now()}`,
+      id:
+        newSession.id ||
+        `SES-${Date.now()}`,
 
       sessionName:
         newSession.sessionName ||
@@ -100,7 +119,8 @@ function TrainerDashboard() {
       time: newSession.time || "",
 
       duration:
-        newSession.duration || "Not provided",
+        newSession.duration ||
+        "Not provided",
 
       status:
         newSession.status || "Upcoming",
@@ -131,6 +151,11 @@ function TrainerDashboard() {
     user.role === "Teacher" ||
     user.role === "Admin";
 
+  const canViewAttendance =
+    user.role === "Student" ||
+    user.role === "Teacher" ||
+    user.role === "Admin";
+
   return (
     <div className="trainer-dashboard">
       <header className="dashboard-header">
@@ -156,10 +181,15 @@ function TrainerDashboard() {
       <div className="dashboard-grid">
         {isTeacherOrAdmin && (
           <div className="dashboard-card">
+            <div className="dashboard-card-icon">
+              ＋
+            </div>
+
             <h2>Create Session</h2>
 
             <p>
-              Schedule a new virtual classroom.
+              Schedule a new virtual classroom
+              session.
             </p>
 
             <button
@@ -175,17 +205,23 @@ function TrainerDashboard() {
 
         {isTeacherOrAdmin && (
           <div className="dashboard-card">
+            <div className="dashboard-card-icon">
+              📅
+            </div>
+
             <h2>Session Management</h2>
 
             <p>
-              Create, view and manage training
-              sessions.
+              Create, view, update and manage
+              training sessions.
             </p>
 
             <button
               type="button"
               onClick={() =>
-                navigate("/session-management")
+                navigate(
+                  "/session-management"
+                )
               }
             >
               Open
@@ -193,17 +229,49 @@ function TrainerDashboard() {
           </div>
         )}
 
+        {canViewAttendance && (
+          <div className="dashboard-card attendance-dashboard-card">
+            <div className="dashboard-card-icon">
+              ✓
+            </div>
+
+            <h2>Attendance Management</h2>
+
+            <p>
+              {user.role === "Student"
+                ? "View your attendance records and session participation."
+                : "Monitor student attendance, duration and participation."}
+            </p>
+
+            <button
+              type="button"
+              onClick={() =>
+                navigate("/attendance")
+              }
+            >
+              View Attendance
+            </button>
+          </div>
+        )}
+
         <div className="dashboard-card">
+          <div className="dashboard-card-icon">
+            🎥
+          </div>
+
           <h2>Recording Dashboard</h2>
 
           <p>
-            View and manage uploaded recordings.
+            View and manage uploaded classroom
+            recordings.
           </p>
 
           <button
             type="button"
             onClick={() =>
-              navigate("/recording-dashboard")
+              navigate(
+                "/recording-dashboard"
+              )
             }
           >
             Open
@@ -211,6 +279,10 @@ function TrainerDashboard() {
         </div>
 
         <div className="dashboard-card">
+          <div className="dashboard-card-icon">
+            ▶
+          </div>
+
           <h2>Session Recordings</h2>
 
           <p>
@@ -221,7 +293,9 @@ function TrainerDashboard() {
           <button
             type="button"
             onClick={() =>
-              navigate("/session-recordings")
+              navigate(
+                "/session-recordings"
+              )
             }
           >
             Open
@@ -229,16 +303,56 @@ function TrainerDashboard() {
         </div>
 
         <div className="dashboard-card full-width">
-          <h2>Recent Sessions</h2>
+          <div className="recent-sessions-header">
+            <div>
+              <h2>Recent Sessions</h2>
+
+              <p>
+                Latest virtual classroom
+                sessions.
+              </p>
+            </div>
+
+            {isTeacherOrAdmin && (
+              <button
+                type="button"
+                className="view-all-sessions-btn"
+                onClick={() =>
+                  navigate(
+                    "/session-management"
+                  )
+                }
+              >
+                View All
+              </button>
+            )}
+          </div>
 
           {sessions.length === 0 ? (
             <div className="empty-box">
-              <h3>No sessions created yet</h3>
+              <div className="empty-box-icon">
+                📅
+              </div>
+
+              <h3>
+                No sessions created yet
+              </h3>
 
               <p>
                 Teacher or Admin users can create
                 a new session.
               </p>
+
+              {isTeacherOrAdmin && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowCreateModal(true)
+                  }
+                >
+                  Create Session
+                </button>
+              )}
             </div>
           ) : (
             <div className="session-table-wrapper">
@@ -260,7 +374,9 @@ function TrainerDashboard() {
                     .slice(0, 10)
                     .map((session) => (
                       <tr key={session.id}>
-                        <td>{session.id}</td>
+                        <td>
+                          {session.id}
+                        </td>
 
                         <td>
                           {session.sessionName ||
@@ -289,8 +405,15 @@ function TrainerDashboard() {
                         </td>
 
                         <td>
-                          {session.status ||
-                            "Upcoming"}
+                          <span
+                            className={`session-status session-status--${String(
+                              session.status ||
+                                "Upcoming"
+                            ).toLowerCase()}`}
+                          >
+                            {session.status ||
+                              "Upcoming"}
+                          </span>
                         </td>
                       </tr>
                     ))}

@@ -416,3 +416,67 @@ body {
     padding: 13px 11px;
   }
 }
+
+.form-button-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.edit-btn {
+  border: none;
+  padding: 9px 14px;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.edit-btn:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.cancel-btn {
+  border: none;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: #6b7280;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cancel-btn:hover {
+  background: #4b5563;
+}
+
+.editing-message {
+  margin: 0 0 18px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+@media (max-width: 600px) {
+  .form-button-group,
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .form-button-group button,
+  .action-buttons button {
+    width: 100%;
+  }
+}

@@ -13,6 +13,7 @@ import RecordingDashboard from "./Features/Recordings/RecordingDashboard";
 import SessionRecordings from "./Features/Recordings/SessionRecordings";
 import UploadRecordingModal from "./Features/Recordings/UploadRecordingModal";
 import SessionManagement from "./Features/Sessions/SessionManagement";
+import AttendancePage from "./Features/Attendance/AttendancePage";
 
 import AccessDenied from "./Features/Role&Acess/AccessDenied";
 import RoleProtectedRoute from "./Features/Role&Acess/RoleProtectedRoute";
@@ -25,19 +26,43 @@ const dashboardRoutes = {
   Admin: "/admin-dashboard",
 };
 
+function getStoredUser() {
+  try {
+    return JSON.parse(
+      localStorage.getItem("authUser") || "null"
+    );
+  } catch (error) {
+    console.error(
+      "Unable to read authenticated user:",
+      error
+    );
+
+    return null;
+  }
+}
+
 function HomeRedirect() {
   const token = localStorage.getItem("token");
-  const user = JSON.parse(
-    localStorage.getItem("authUser") || "null"
-  );
+  const user = getStoredUser();
 
-  if (!token || !user) {
+  if (!token || !user?.role) {
     return <Navigate to="/login" replace />;
+  }
+
+  const dashboardPath = dashboardRoutes[user.role];
+
+  if (!dashboardPath) {
+    return (
+      <Navigate
+        to="/access-denied"
+        replace
+      />
+    );
   }
 
   return (
     <Navigate
-      to={dashboardRoutes[user.role] || "/access-denied"}
+      to={dashboardPath}
       replace
     />
   );
@@ -51,14 +76,28 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<HomeRedirect />} />
+        <Route
+          path="/"
+          element={<HomeRedirect />}
+        />
 
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        {/* Public routes */}
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+
+        <Route
+          path="/register"
+          element={<Register />}
+        />
+
         <Route
           path="/access-denied"
           element={<AccessDenied />}
         />
+
+        {/* Dashboard routes */}
         <Route
           path="/student-dashboard"
           element={
@@ -114,6 +153,7 @@ function App() {
           }
         />
 
+        {/* Recording routes */}
         <Route
           path="/recording-dashboard"
           element={
@@ -159,6 +199,7 @@ function App() {
           }
         />
 
+        {/* Session management */}
         <Route
           path="/session-management"
           element={
@@ -170,10 +211,31 @@ function App() {
           }
         />
 
-        {/* Fallback */}
+        {/* Attendance management */}
+        <Route
+          path="/attendance"
+          element={
+            <RoleProtectedRoute
+              allowedRoles={[
+                "Student",
+                "Teacher",
+                "Admin",
+              ]}
+            >
+              <AttendancePage />
+            </RoleProtectedRoute>
+          }
+        />
+
+        {/* Fallback route */}
         <Route
           path="*"
-          element={<Navigate to="/" replace />}
+          element={
+            <Navigate
+              to="/"
+              replace
+            />
+          }
         />
       </Routes>
     </BrowserRouter>

@@ -56,6 +56,9 @@ function SessionManagement() {
 
   const [form, setForm] = useState(emptyForm);
 
+  const [editingId, setEditingId] =
+    useState(null);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
 
@@ -64,7 +67,10 @@ function SessionManagement() {
       localStorage.removeItem("authUser");
       localStorage.removeItem("isLoggedIn");
 
-      navigate("/login", { replace: true });
+      navigate("/login", {
+        replace: true,
+      });
+
       return;
     }
 
@@ -106,7 +112,38 @@ function SessionManagement() {
       !sessionData.time ||
       !sessionData.duration
     ) {
-      alert("Please fill in all required fields.");
+      alert(
+        "Please fill in all required fields."
+      );
+
+      return;
+    }
+
+    if (editingId) {
+      setSessions((previousSessions) => {
+        const updatedSessions =
+          previousSessions.map((session) =>
+            session.id === editingId
+              ? {
+                  ...session,
+                  ...sessionData,
+                }
+              : session
+          );
+
+        localStorage.setItem(
+          "sessions",
+          JSON.stringify(updatedSessions)
+        );
+
+        return updatedSessions;
+      });
+
+      setEditingId(null);
+      setForm(emptyForm);
+
+      alert("Session updated successfully.");
+
       return;
     }
 
@@ -134,6 +171,29 @@ function SessionManagement() {
     alert("Session created successfully.");
   };
 
+  const editSession = (session) => {
+    setForm({
+      sessionName: session.sessionName || "",
+      trainerName: session.trainerName || "",
+      date: session.date || "",
+      time: session.time || "",
+      duration: session.duration || "",
+      status: session.status || "Upcoming",
+    });
+
+    setEditingId(session.id);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+  };
+
   const deleteSession = (sessionId) => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this session?"
@@ -156,6 +216,13 @@ function SessionManagement() {
 
       return updatedSessions;
     });
+
+    if (editingId === sessionId) {
+      setEditingId(null);
+      setForm(emptyForm);
+    }
+
+    alert("Session deleted successfully.");
   };
 
   if (!user) {
@@ -187,7 +254,18 @@ function SessionManagement() {
 
       <div className="session-layout">
         <div className="session-form">
-          <h2>Create Session</h2>
+          <h2>
+            {editingId
+              ? "Update Session"
+              : "Create Session"}
+          </h2>
+
+          {editingId && (
+            <p className="editing-message">
+              You are editing session:{" "}
+              <strong>{editingId}</strong>
+            </p>
+          )}
 
           <form onSubmit={handleSubmit}>
             <label htmlFor="sessionName">
@@ -281,12 +359,26 @@ function SessionManagement() {
               </option>
             </select>
 
-            <button
-              className="submit-btn"
-              type="submit"
-            >
-              Save Session
-            </button>
+            <div className="form-button-group">
+              <button
+                className="submit-btn"
+                type="submit"
+              >
+                {editingId
+                  ? "Update Session"
+                  : "Save Session"}
+              </button>
+
+              {editingId && (
+                <button
+                  type="button"
+                  className="cancel-btn"
+                  onClick={cancelEdit}
+                >
+                  Cancel Edit
+                </button>
+              )}
+            </div>
           </form>
         </div>
 
@@ -353,15 +445,29 @@ function SessionManagement() {
                       </td>
 
                       <td>
-                        <button
-                          type="button"
-                          className="delete-btn"
-                          onClick={() =>
-                            deleteSession(session.id)
-                          }
-                        >
-                          Delete
-                        </button>
+                        <div className="action-buttons">
+                          <button
+                            type="button"
+                            className="edit-btn"
+                            onClick={() =>
+                              editSession(session)
+                            }
+                          >
+                            Update
+                          </button>
+
+                          <button
+                            type="button"
+                            className="delete-btn"
+                            onClick={() =>
+                              deleteSession(
+                                session.id
+                              )
+                            }
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

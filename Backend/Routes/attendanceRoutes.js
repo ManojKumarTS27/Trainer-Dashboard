@@ -6,14 +6,21 @@ import {
 } from "express-validator";
 
 import {
+  getAllAttendance,
   markAttendance,
   getAttendanceBySession,
   getAttendanceByStudent,
   updateAttendance,
 } from "../Controllers/attendanceController.js";
 
-import { authenticateUser } from "../Middleware/authMiddleware.js";
-import { authorizeRoles } from "../Middleware/roleMiddleware.js";
+import {
+  authenticateUser,
+} from "../Middleware/authMiddleware.js";
+
+import {
+  authorizeRoles,
+} from "../Middleware/roleMiddleware.js";
+
 import validateRequest from "../Middleware/validateRequest.js";
 
 const router = express.Router();
@@ -40,6 +47,29 @@ const validateOptionalDate = (
 };
 
 /*
+  GET /api/attendance
+
+  Student:
+  Receives only their own records.
+
+  Teacher/Admin:
+  Receives all attendance records.
+*/
+router.get(
+  "/",
+
+  authenticateUser,
+
+  authorizeRoles(
+    "Student",
+    "Teacher",
+    "Admin"
+  ),
+
+  getAllAttendance
+);
+
+/*
   POST /api/attendance/mark
 */
 router.post(
@@ -56,15 +86,21 @@ router.post(
   [
     body("sessionId")
       .notEmpty()
-      .withMessage("Session ID is required")
+      .withMessage(
+        "Session ID is required"
+      )
       .bail()
       .isMongoId()
-      .withMessage("Invalid session ID"),
+      .withMessage(
+        "Invalid session ID"
+      ),
 
     body("userId")
       .optional()
       .isMongoId()
-      .withMessage("Invalid user ID"),
+      .withMessage(
+        "Invalid user ID"
+      ),
 
     validateOptionalDate(
       "joinTime",
@@ -130,7 +166,9 @@ router.get(
   [
     param("sessionId")
       .isMongoId()
-      .withMessage("Invalid session ID"),
+      .withMessage(
+        "Invalid session ID"
+      ),
   ],
 
   validateRequest,
@@ -155,7 +193,9 @@ router.get(
   [
     param("studentId")
       .isMongoId()
-      .withMessage("Invalid student ID"),
+      .withMessage(
+        "Invalid student ID"
+      ),
   ],
 
   validateRequest,
@@ -188,12 +228,16 @@ router.put(
     body("userId")
       .optional()
       .isMongoId()
-      .withMessage("Invalid user ID"),
+      .withMessage(
+        "Invalid user ID"
+      ),
 
     body("sessionId")
       .optional()
       .isMongoId()
-      .withMessage("Invalid session ID"),
+      .withMessage(
+        "Invalid session ID"
+      ),
 
     validateOptionalDate(
       "joinTime",
@@ -214,51 +258,61 @@ router.put(
         )}`
       ),
 
-    body().custom((requestBody, { req }) => {
-      const hasAttendanceId =
-        Boolean(requestBody.attendanceId);
+    body().custom(
+      (requestBody, { req }) => {
+        const hasAttendanceId =
+          Boolean(
+            requestBody.attendanceId
+          );
 
-      const isStudent =
-        req.user?.role === "Student";
+        const isStudent =
+          req.user?.role === "Student";
 
-      const hasRequiredLookupFields =
-        isStudent
-          ? Boolean(requestBody.sessionId)
-          : Boolean(requestBody.userId) &&
-            Boolean(requestBody.sessionId);
-
-      if (
-        !hasAttendanceId &&
-        !hasRequiredLookupFields
-      ) {
-        throw new Error(
+        const hasRequiredLookupFields =
           isStudent
-            ? "Provide attendanceId or sessionId"
-            : "Provide attendanceId or both userId and sessionId"
-        );
-      }
+            ? Boolean(
+                requestBody.sessionId
+              )
+            : Boolean(
+                requestBody.userId
+              ) &&
+              Boolean(
+                requestBody.sessionId
+              );
 
-      if (
-        requestBody.joinTime &&
-        requestBody.leaveTime
-      ) {
-        const joinTime = new Date(
-          requestBody.joinTime
-        );
-
-        const leaveTime = new Date(
-          requestBody.leaveTime
-        );
-
-        if (leaveTime < joinTime) {
+        if (
+          !hasAttendanceId &&
+          !hasRequiredLookupFields
+        ) {
           throw new Error(
-            "Leave time cannot be earlier than join time"
+            isStudent
+              ? "Provide attendanceId or sessionId"
+              : "Provide attendanceId or both userId and sessionId"
           );
         }
-      }
 
-      return true;
-    }),
+        if (
+          requestBody.joinTime &&
+          requestBody.leaveTime
+        ) {
+          const joinTime = new Date(
+            requestBody.joinTime
+          );
+
+          const leaveTime = new Date(
+            requestBody.leaveTime
+          );
+
+          if (leaveTime < joinTime) {
+            throw new Error(
+              "Leave time cannot be earlier than join time"
+            );
+          }
+        }
+
+        return true;
+      }
+    ),
   ],
 
   validateRequest,
