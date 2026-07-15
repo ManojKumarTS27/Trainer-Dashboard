@@ -1,15 +1,12 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
+
 import { useNavigate } from "react-router-dom";
+
 import CreateSessionModal from "./CreateSessionModal";
 import "./TrainerDashboard.css";
-
-const dashboardRoutes = {
-  Student: "/student-dashboard",
-  Teacher: "/teacher-dashboard",
-  Employer: "/employer-dashboard",
-  Employee: "/employee-dashboard",
-  Admin: "/admin-dashboard",
-};
 
 function getStoredUser() {
   try {
@@ -50,96 +47,112 @@ function TrainerDashboard() {
 
   const [user] = useState(getStoredUser);
 
+  const [sessions, setSessions] = useState(
+    getStoredSessions
+  );
+
   const [
     showCreateModal,
     setShowCreateModal,
   ] = useState(false);
 
-  const [sessions, setSessions] = useState(
-    getStoredSessions
-  );
-
   useEffect(() => {
     const token = localStorage.getItem("token");
 
-    if (!user || !token) {
+    if (!token || !user) {
       localStorage.removeItem("token");
       localStorage.removeItem("authUser");
-      localStorage.removeItem("isLoggedIn");
 
       navigate("/login", {
-        replace: true,
-      });
-
-      return;
-    }
-
-    if (!dashboardRoutes[user.role]) {
-      navigate("/access-denied", {
         replace: true,
       });
     }
   }, [navigate, user]);
 
+  const saveSessions = (updatedSessions) => {
+    setSessions(updatedSessions);
+
+    localStorage.setItem(
+      "sessions",
+      JSON.stringify(updatedSessions)
+    );
+  };
+
+  const handleCreateSession = (
+    sessionData
+  ) => {
+    const newSession = {
+      id: `SES-${Date.now()}`,
+
+      sessionName:
+        sessionData.sessionName.trim(),
+
+      batch: sessionData.batch,
+
+      trainerName:
+        sessionData.trainerName.trim() ||
+        user?.name ||
+        "Trainer",
+
+      date: sessionData.date,
+
+      time: sessionData.time,
+
+      duration:
+        sessionData.duration ||
+        "60 minutes",
+
+      status:
+        sessionData.status ||
+        "Upcoming",
+
+      description:
+        sessionData.description.trim(),
+
+      createdAt: new Date().toISOString(),
+    };
+
+    saveSessions([
+      newSession,
+      ...sessions,
+    ]);
+
+    setShowCreateModal(false);
+  };
+
+  const startSession = (session) => {
+    const liveSession = {
+      ...session,
+      status: "Live",
+    };
+
+    const updatedSessions = sessions.map(
+      (currentSession) =>
+        currentSession.id === session.id
+          ? liveSession
+          : currentSession
+    );
+
+    saveSessions(updatedSessions);
+
+    localStorage.setItem(
+      "activeSession",
+      JSON.stringify(liveSession)
+    );
+
+    navigate(
+      `/digital-classroom/${session.id}`
+    );
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("authUser");
     localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("activeSession");
 
     navigate("/login", {
       replace: true,
-    });
-  };
-
-  const handleCreateSession = (
-    newSession
-  ) => {
-    const normalizedSession = {
-      id:
-        newSession.id ||
-        `SES-${Date.now()}`,
-
-      sessionName:
-        newSession.sessionName ||
-        newSession.batch ||
-        "Untitled Session",
-
-      batch:
-        newSession.batch ||
-        newSession.sessionName ||
-        "Not provided",
-
-      trainerName:
-        newSession.trainerName ||
-        user?.name ||
-        "Not provided",
-
-      date: newSession.date || "",
-
-      time: newSession.time || "",
-
-      duration:
-        newSession.duration ||
-        "Not provided",
-
-      status:
-        newSession.status || "Upcoming",
-
-      ...newSession,
-    };
-
-    setSessions((previousSessions) => {
-      const updatedSessions = [
-        normalizedSession,
-        ...previousSessions,
-      ];
-
-      localStorage.setItem(
-        "sessions",
-        JSON.stringify(updatedSessions)
-      );
-
-      return updatedSessions;
     });
   };
 
@@ -151,22 +164,30 @@ function TrainerDashboard() {
     user.role === "Teacher" ||
     user.role === "Admin";
 
-  const canViewAttendance =
-    user.role === "Student" ||
-    user.role === "Teacher" ||
-    user.role === "Admin";
-
   return (
     <div className="trainer-dashboard">
       <header className="dashboard-header">
-        <div>
-          <h1>
-            Welcome, {user.name || "User"}
-          </h1>
+        <div className="dashboard-user">
+          <div className="user-avatar">
+            {(user.name || "U")
+              .charAt(0)
+              .toUpperCase()}
+          </div>
 
-          <p>
-            Role: <strong>{user.role}</strong>
-          </p>
+          <div>
+            <p className="dashboard-label">
+              Digital learning workspace
+            </p>
+
+            <h1>
+              Welcome, {user.name || "User"}
+            </h1>
+
+            <p className="dashboard-role">
+              Signed in as{" "}
+              <strong>{user.role}</strong>
+            </p>
+          </div>
         </div>
 
         <button
@@ -178,9 +199,55 @@ function TrainerDashboard() {
         </button>
       </header>
 
-      <div className="dashboard-grid">
+      <section className="dashboard-summary">
+        <div>
+          <span>Total Sessions</span>
+          <strong>{sessions.length}</strong>
+        </div>
+
+        <div>
+          <span>Upcoming</span>
+
+          <strong>
+            {
+              sessions.filter(
+                (session) =>
+                  session.status === "Upcoming"
+              ).length
+            }
+          </strong>
+        </div>
+
+        <div>
+          <span>Live Sessions</span>
+
+          <strong>
+            {
+              sessions.filter(
+                (session) =>
+                  session.status === "Live"
+              ).length
+            }
+          </strong>
+        </div>
+
+        <div>
+          <span>Completed</span>
+
+          <strong>
+            {
+              sessions.filter(
+                (session) =>
+                  session.status === "Completed"
+              ).length
+            }
+          </strong>
+        </div>
+      </section>
+
+      <main className="dashboard-grid">
         {isTeacherOrAdmin && (
-          <div className="dashboard-card">
+          <article className="dashboard-card">
             <div className="dashboard-card-icon">
               ＋
             </div>
@@ -188,8 +255,8 @@ function TrainerDashboard() {
             <h2>Create Session</h2>
 
             <p>
-              Schedule a new virtual classroom
-              session.
+              Schedule and prepare a new digital
+              classroom session.
             </p>
 
             <button
@@ -198,13 +265,13 @@ function TrainerDashboard() {
                 setShowCreateModal(true)
               }
             >
-              Open
+              Create Session
             </button>
-          </div>
+          </article>
         )}
 
         {isTeacherOrAdmin && (
-          <div className="dashboard-card">
+          <article className="dashboard-card">
             <div className="dashboard-card-icon">
               📅
             </div>
@@ -212,8 +279,8 @@ function TrainerDashboard() {
             <h2>Session Management</h2>
 
             <p>
-              Create, view, update and manage
-              training sessions.
+              View, update and manage all classroom
+              sessions.
             </p>
 
             <button
@@ -224,37 +291,34 @@ function TrainerDashboard() {
                 )
               }
             >
-              Open
+              Manage Sessions
             </button>
-          </div>
+          </article>
         )}
 
-        {canViewAttendance && (
-          <div className="dashboard-card attendance-dashboard-card">
-            <div className="dashboard-card-icon">
-              ✓
-            </div>
-
-            <h2>Attendance Management</h2>
-
-            <p>
-              {user.role === "Student"
-                ? "View your attendance records and session participation."
-                : "Monitor student attendance, duration and participation."}
-            </p>
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/attendance")
-              }
-            >
-              View Attendance
-            </button>
+        <article className="dashboard-card">
+          <div className="dashboard-card-icon">
+            ✓
           </div>
-        )}
 
-        <div className="dashboard-card">
+          <h2>Attendance</h2>
+
+          <p>
+            Monitor attendance, participation and
+            session duration.
+          </p>
+
+          <button
+            type="button"
+            onClick={() =>
+              navigate("/attendance")
+            }
+          >
+            View Attendance
+          </button>
+        </article>
+
+        <article className="dashboard-card">
           <div className="dashboard-card-icon">
             🎥
           </div>
@@ -262,7 +326,7 @@ function TrainerDashboard() {
           <h2>Recording Dashboard</h2>
 
           <p>
-            View and manage uploaded classroom
+            Upload and manage digital classroom
             recordings.
           </p>
 
@@ -274,11 +338,11 @@ function TrainerDashboard() {
               )
             }
           >
-            Open
+            Open Recordings
           </button>
-        </div>
+        </article>
 
-        <div className="dashboard-card">
+        <article className="dashboard-card">
           <div className="dashboard-card-icon">
             ▶
           </div>
@@ -286,7 +350,7 @@ function TrainerDashboard() {
           <h2>Session Recordings</h2>
 
           <p>
-            Watch previously uploaded session
+            Watch previously uploaded classroom
             recordings.
           </p>
 
@@ -298,18 +362,18 @@ function TrainerDashboard() {
               )
             }
           >
-            Open
+            Watch Recordings
           </button>
-        </div>
+        </article>
 
-        <div className="dashboard-card full-width">
+        <section className="dashboard-card sessions-section">
           <div className="recent-sessions-header">
             <div>
               <h2>Recent Sessions</h2>
 
               <p>
-                Latest virtual classroom
-                sessions.
+                Start or manage your latest
+                classroom sessions.
               </p>
             </div>
 
@@ -339,8 +403,8 @@ function TrainerDashboard() {
               </h3>
 
               <p>
-                Teacher or Admin users can create
-                a new session.
+                Create your first virtual classroom
+                session.
               </p>
 
               {isTeacherOrAdmin && (
@@ -359,13 +423,13 @@ function TrainerDashboard() {
               <table className="session-table">
                 <thead>
                   <tr>
-                    <th>Session ID</th>
                     <th>Session</th>
                     <th>Trainer</th>
                     <th>Date</th>
                     <th>Time</th>
                     <th>Duration</th>
                     <th>Status</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
 
@@ -375,18 +439,21 @@ function TrainerDashboard() {
                     .map((session) => (
                       <tr key={session.id}>
                         <td>
-                          {session.id}
-                        </td>
+                          <div className="session-title-cell">
+                            <strong>
+                              {session.sessionName ||
+                                session.batch}
+                            </strong>
 
-                        <td>
-                          {session.sessionName ||
-                            session.batch ||
-                            "Untitled Session"}
+                            <small>
+                              {session.id}
+                            </small>
+                          </div>
                         </td>
 
                         <td>
                           {session.trainerName ||
-                            "Not provided"}
+                            "Trainer"}
                         </td>
 
                         <td>
@@ -401,7 +468,7 @@ function TrainerDashboard() {
 
                         <td>
                           {session.duration ||
-                            "Not provided"}
+                            "60 minutes"}
                         </td>
 
                         <td>
@@ -415,17 +482,35 @@ function TrainerDashboard() {
                               "Upcoming"}
                           </span>
                         </td>
+
+                        <td>
+                          <button
+                            type="button"
+                            className="start-session-btn"
+                            onClick={() =>
+                              startSession(session)
+                            }
+                          >
+                            {session.status ===
+                            "Live"
+                              ? "Rejoin"
+                              : "Start Session"}
+                          </button>
+                        </td>
                       </tr>
                     ))}
                 </tbody>
               </table>
             </div>
           )}
-        </div>
-      </div>
+        </section>
+      </main>
 
       {showCreateModal && (
         <CreateSessionModal
+          defaultTrainerName={
+            user.name || ""
+          }
           onClose={() =>
             setShowCreateModal(false)
           }

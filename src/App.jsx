@@ -1,19 +1,23 @@
 import {
   BrowserRouter,
-  Routes,
-  Route,
   Navigate,
+  Route,
+  Routes,
 } from "react-router-dom";
 
 import Login from "./Features/Login&out/Login";
 import Register from "./Features/Login&out/Register";
 
 import TrainerDashboard from "./Features/Trainer/TrainerDashboard";
+
 import RecordingDashboard from "./Features/Recordings/RecordingDashboard";
 import SessionRecordings from "./Features/Recordings/SessionRecordings";
 import UploadRecordingModal from "./Features/Recordings/UploadRecordingModal";
+
 import SessionManagement from "./Features/Sessions/SessionManagement";
 import AttendancePage from "./Features/Attendance/AttendancePage";
+
+import DigitalClassroom from "./Features/DigitalClassroom/DigitalClassroom";
 
 import AccessDenied from "./Features/Role&Acess/AccessDenied";
 import RoleProtectedRoute from "./Features/Role&Acess/RoleProtectedRoute";
@@ -31,12 +35,7 @@ function getStoredUser() {
     return JSON.parse(
       localStorage.getItem("authUser") || "null"
     );
-  } catch (error) {
-    console.error(
-      "Unable to read authenticated user:",
-      error
-    );
-
+  } catch {
     return null;
   }
 }
@@ -81,7 +80,11 @@ function App() {
           element={<HomeRedirect />}
         />
 
-        {/* Public routes */}
+        <Route
+          path="/trainer-dashboard"
+          element={<HomeRedirect />}
+        />
+
         <Route
           path="/login"
           element={<Login />}
@@ -97,12 +100,14 @@ function App() {
           element={<AccessDenied />}
         />
 
-        {/* Dashboard routes */}
         <Route
           path="/student-dashboard"
           element={
             <RoleProtectedRoute
-              allowedRoles={["Student", "Admin"]}
+              allowedRoles={[
+                "Student",
+                "Admin",
+              ]}
             >
               <Dashboard />
             </RoleProtectedRoute>
@@ -113,7 +118,10 @@ function App() {
           path="/teacher-dashboard"
           element={
             <RoleProtectedRoute
-              allowedRoles={["Teacher", "Admin"]}
+              allowedRoles={[
+                "Teacher",
+                "Admin",
+              ]}
             >
               <Dashboard />
             </RoleProtectedRoute>
@@ -124,7 +132,10 @@ function App() {
           path="/employer-dashboard"
           element={
             <RoleProtectedRoute
-              allowedRoles={["Employer", "Admin"]}
+              allowedRoles={[
+                "Employer",
+                "Admin",
+              ]}
             >
               <Dashboard />
             </RoleProtectedRoute>
@@ -135,7 +146,10 @@ function App() {
           path="/employee-dashboard"
           element={
             <RoleProtectedRoute
-              allowedRoles={["Employee", "Admin"]}
+              allowedRoles={[
+                "Employee",
+                "Admin",
+              ]}
             >
               <Dashboard />
             </RoleProtectedRoute>
@@ -153,7 +167,50 @@ function App() {
           }
         />
 
-        {/* Recording routes */}
+        <Route
+          path="/digital-classroom/:sessionId"
+          element={
+            <RoleProtectedRoute
+              allowedRoles={[
+                "Student",
+                "Teacher",
+                "Admin",
+              ]}
+            >
+              <DigitalClassroom />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/session-management"
+          element={
+            <RoleProtectedRoute
+              allowedRoles={[
+                "Teacher",
+                "Admin",
+              ]}
+            >
+              <SessionManagement />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/attendance"
+          element={
+            <RoleProtectedRoute
+              allowedRoles={[
+                "Student",
+                "Teacher",
+                "Admin",
+              ]}
+            >
+              <AttendancePage />
+            </RoleProtectedRoute>
+          }
+        />
+
         <Route
           path="/recording-dashboard"
           element={
@@ -192,42 +249,16 @@ function App() {
           path="/upload-recording"
           element={
             <RoleProtectedRoute
-              allowedRoles={["Teacher", "Admin"]}
+              allowedRoles={[
+                "Teacher",
+                "Admin",
+              ]}
             >
               <UploadRecordingModal />
             </RoleProtectedRoute>
           }
         />
 
-        {/* Session management */}
-        <Route
-          path="/session-management"
-          element={
-            <RoleProtectedRoute
-              allowedRoles={["Teacher", "Admin"]}
-            >
-              <SessionManagement />
-            </RoleProtectedRoute>
-          }
-        />
-
-        {/* Attendance management */}
-        <Route
-          path="/attendance"
-          element={
-            <RoleProtectedRoute
-              allowedRoles={[
-                "Student",
-                "Teacher",
-                "Admin",
-              ]}
-            >
-              <AttendancePage />
-            </RoleProtectedRoute>
-          }
-        />
-
-        {/* Fallback route */}
         <Route
           path="*"
           element={

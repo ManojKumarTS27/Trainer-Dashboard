@@ -1,0 +1,339 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: #f8fafc;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* Main classroom page */
+
+.digital-classroom {
+  width: 100%;
+  min-height: 100vh;
+  padding: 22px;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(79, 70, 229, 0.18),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(14, 165, 233, 0.12),
+      transparent 30%
+    ),
+    linear-gradient(
+      135deg,
+      #eef2ff,
+      #f8fafc
+    );
+}
+
+/* Classroom header */
+
+.classroom-topbar {
+  width: min(1500px, 100%);
+  margin: 0 auto 20px;
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  border-radius: 22px;
+  background:
+    linear-gradient(
+      135deg,
+      #0f172a,
+      #1e293b
+    );
+  color: #ffffff;
+  box-shadow:
+    0 18px 45px
+      rgba(15, 23, 42, 0.22);
+}
+
+.classroom-topbar h1 {
+  margin: 8px 0 5px;
+  color: #ffffff;
+  font-size: clamp(
+    23px,
+    3vw,
+    30px
+  );
+  line-height: 1.2;
+}
+
+.classroom-topbar p {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 14px;
+}
+
+/* Live indicator */
+
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #86efac;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.live-indicator span {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow:
+    0 0 0 5px
+      rgba(34, 197, 94, 0.15);
+  animation: livePulse 1.8s infinite;
+}
+
+@keyframes livePulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 4px
+        rgba(34, 197, 94, 0.15);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 9px
+        rgba(34, 197, 94, 0.05);
+  }
+}
+
+/* Header buttons */
+
+.classroom-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.classroom-header-actions button {
+  min-height: 43px;
+  padding: 11px 18px;
+  border-radius: 11px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.classroom-header-actions button:hover {
+  transform: translateY(-2px);
+}
+
+.dashboard-back-btn {
+  border: 1px solid #475569;
+  background: #334155;
+}
+
+.dashboard-back-btn:hover {
+  background: #475569;
+  box-shadow:
+    0 9px 20px
+      rgba(15, 23, 42, 0.3);
+}
+
+.end-session-btn {
+  border: none;
+  background:
+    linear-gradient(
+      135deg,
+      #ef4444,
+      #dc2626
+    );
+  box-shadow:
+    0 9px 20px
+      rgba(220, 38, 38, 0.25);
+}
+
+.end-session-btn:hover {
+  box-shadow:
+    0 12px 24px
+      rgba(220, 38, 38, 0.35);
+}
+
+/* Whiteboard and chat layout */
+
+.classroom-content {
+  width: min(1500px, 100%);
+  min-height: 700px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns:
+    minmax(0, 3fr)
+    minmax(300px, 1fr);
+  align-items: stretch;
+  gap: 20px;
+}
+
+.whiteboard-section,
+.chat-section {
+  width: 100%;
+  min-width: 0;
+  min-height: 700px;
+}
+
+.whiteboard-section {
+  display: flex;
+}
+
+.whiteboard-section
+  .whiteboard-container {
+  width: 100%;
+  flex: 1;
+}
+
+.chat-section {
+  display: flex;
+}
+
+.chat-section .chat-container {
+  width: 100%;
+  flex: 1;
+}
+
+/* Session error screen */
+
+.classroom-error-page {
+  min-height: 100vh;
+  padding: 24px;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(
+      135deg,
+      #eef2ff,
+      #f8fafc
+    );
+}
+
+.classroom-error-card {
+  width: min(450px, 100%);
+  padding: 35px;
+  border: 1px solid #e2e8f0;
+  border-radius: 22px;
+  background: #ffffff;
+  text-align: center;
+  box-shadow:
+    0 20px 55px
+      rgba(15, 23, 42, 0.12);
+}
+
+.classroom-error-card h2 {
+  margin: 0 0 10px;
+  color: #0f172a;
+  font-size: 26px;
+}
+
+.classroom-error-card p {
+  margin: 0 0 22px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.classroom-error-card button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 11px;
+  background:
+    linear-gradient(
+      135deg,
+      #4f46e5,
+      #7c3aed
+    );
+  color: #ffffff;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.classroom-error-card button:hover {
+  transform: translateY(-2px);
+}
+
+/* Tablet */
+
+@media (max-width: 1000px) {
+  .classroom-content {
+    grid-template-columns: 1fr;
+  }
+
+  .whiteboard-section,
+  .chat-section {
+    min-height: auto;
+  }
+
+  .chat-section .chat-container {
+    min-height: 500px;
+    height: 500px;
+  }
+}
+
+/* Mobile */
+
+@media (max-width: 650px) {
+  .digital-classroom {
+    padding: 12px;
+  }
+
+  .classroom-topbar {
+    padding: 18px;
+    align-items: flex-start;
+    flex-direction: column;
+    border-radius: 17px;
+  }
+
+  .classroom-header-actions {
+    width: 100%;
+  }
+
+  .classroom-header-actions button {
+    flex: 1;
+  }
+
+  .classroom-content {
+    gap: 14px;
+  }
+}
+
+@media (max-width: 420px) {
+  .classroom-header-actions {
+    flex-direction: column;
+  }
+
+  .classroom-header-actions button {
+    width: 100%;
+  }
+}
