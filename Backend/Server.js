@@ -20,12 +20,17 @@ const app = express();
 const PORT =
   process.env.PORT || 5000;
 
-/* Middleware */
+/*
+|--------------------------------------------------------------------------
+| Global middleware
+|--------------------------------------------------------------------------
+*/
 
 app.use(
   cors({
     origin: "http://localhost:5173",
     credentials: true,
+
     methods: [
       "GET",
       "POST",
@@ -34,6 +39,7 @@ app.use(
       "DELETE",
       "OPTIONS",
     ],
+
     allowedHeaders: [
       "Content-Type",
       "Authorization",
@@ -54,17 +60,25 @@ app.use(
   })
 );
 
-/* Health check */
+/*
+|--------------------------------------------------------------------------
+| Health check
+|--------------------------------------------------------------------------
+*/
 
 app.get("/", (req, res) => {
   return res.status(200).json({
     success: true,
     message:
-      "RBAC and Virtual Classroom backend is running",
+      "Virtual Classroom backend is running",
   });
 });
 
-/* API routes */
+/*
+|--------------------------------------------------------------------------
+| API routes
+|--------------------------------------------------------------------------
+*/
 
 app.use(
   "/api/auth",
@@ -91,7 +105,11 @@ app.use(
   whiteboardRoutes
 );
 
-/* Temporary session testing routes */
+/*
+|--------------------------------------------------------------------------
+| Temporary session testing routes
+|--------------------------------------------------------------------------
+*/
 
 app.get(
   "/api/test/sessions",
@@ -119,13 +137,12 @@ app.get(
             : "No sessions found",
         connectedDatabase:
           Session.db.name,
-        count:
-          sessions.length,
+        count: sessions.length,
         sessions,
       });
     } catch (error) {
       console.error(
-        "Get test sessions error:",
+        "Get sessions error:",
         error
       );
 
@@ -133,7 +150,6 @@ app.get(
         success: false,
         message:
           "Unable to retrieve sessions",
-        error: error.message,
       });
     }
   }
@@ -164,10 +180,6 @@ app.get(
           success: false,
           message:
             "Session not found",
-          receivedSessionId:
-            sessionId,
-          connectedDatabase:
-            Session.db.name,
         });
       }
 
@@ -179,7 +191,7 @@ app.get(
       });
     } catch (error) {
       console.error(
-        "Get single test session error:",
+        "Get session error:",
         error
       );
 
@@ -198,13 +210,16 @@ app.get(
         success: false,
         message:
           "Unable to retrieve session",
-        error: error.message,
       });
     }
   }
 );
 
-/* 404 handler */
+/*
+|--------------------------------------------------------------------------
+| 404 handler
+|--------------------------------------------------------------------------
+*/
 
 app.use((req, res) => {
   return res.status(404).json({
@@ -216,7 +231,11 @@ app.use((req, res) => {
   });
 });
 
-/* Global error handler */
+/*
+|--------------------------------------------------------------------------
+| Global error handler
+|--------------------------------------------------------------------------
+*/
 
 app.use(
   (
@@ -264,15 +283,12 @@ app.use(
         success: false,
         message:
           "Validation failed",
-        errors:
-          Object.values(
-            error.errors
-          ).map(
-            (
-              validationError
-            ) =>
-              validationError.message
-          ),
+        errors: Object.values(
+          error.errors
+        ).map(
+          (validationError) =>
+            validationError.message
+        ),
       });
     }
 
@@ -295,7 +311,11 @@ app.use(
   }
 );
 
-/* Start server */
+/*
+|--------------------------------------------------------------------------
+| Start server
+|--------------------------------------------------------------------------
+*/
 
 const startServer = async () => {
   try {

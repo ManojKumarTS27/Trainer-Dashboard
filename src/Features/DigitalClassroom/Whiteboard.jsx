@@ -5,1104 +5,891 @@ import {
   useState,
 } from "react";
 
+import { useParams } from "react-router-dom";
 import "./Whiteboard.css";
 
 const API_URL =
   "http://localhost:5000/api/whiteboard";
 
-const DEFAULT_COLOR = "#111827";
-const DEFAULT_STROKE_WIDTH = 3;
-const ERASER_WIDTH = 24;
+const CANVAS_HEIGHT = 620;
 
-function Whiteboard({ sessionId }) {
+const TOOLS = [
+  "Pen",
+  "Eraser",
+  "Shape",
+  "Text",
+];
+
+function getStoredUser() {
+  try {
+    const storedUser =
+      localStorage.getItem("authUser");
+
+    return storedUser
+      ? JSON.parse(storedUser)
+      : null;
+  } catch (error) {
+    console.error(
+      "Unable to read authenticated user:",
+      error
+    );
+
+    return null;
+  }
+}
+
+function Whiteboard() {
+  const { sessionId } = useParams();
+
   const canvasRef = useRef(null);
-  const contextRef = useRef(null);
-  const snapshotRef = useRef(null);
-  const currentPointsRef = useRef([]);
+  const canvasAreaRef = useRef(null);
+
+  const isDrawingRef = useRef(false);
+  const startPointRef = useRef(null);
+  const pointsRef = useRef([]);
+  const savedDrawingsRef = useRef([]);
+  const messageTimerRef = useRef(null);
 
   const [tool, setTool] =
-    useState("pen");
+    useState("Pen");
 
   const [color, setColor] =
-    useState(DEFAULT_COLOR);
+    useState("#111827");
 
-  const [
-    strokeWidth,
-    setStrokeWidth,
-  ] = useState(
-    DEFAULT_STROKE_WIDTH
-  );
+  const [strokeWidth, setStrokeWidth] =
+    useState(3);
 
-  const [isDrawing, setIsDrawing] =
+  const [loading, setLoading] =
     useState(false);
 
-  const [isSaving, setIsSaving] =
+  const [saving, setSaving] =
     useState(false);
-
-  const [isLoading, setIsLoading] =
-    useState(true);
-
-  const [
-    pendingDrawings,
-    setPendingDrawings,
-  ] = useState([]);
 
   const [message, setMessage] =
     useState("");
 
-  const [
-    startPosition,
-    setStartPosition,
-  ] = useState({
-    x: 0,
-    y: 0,
-  });
+  const user = getStoredUser();
 
-  const getToken = () => {
-    return localStorage.getItem(
-      "token"
-    );
-  };
+  const token =
+    localStorage.getItem("token");
 
-  const isValidMongoId = (
-    value
-  ) => {
-    return /^[a-fA-F0-9]{24}$/.test(
-      String(value || "")
-    );
-  };
+  const canClear =
+    user?.role === "Teacher" ||
+    user?.role === "Admin";
 
-  const getPosition = (
-    event
-  ) => {
+  const showMessage = useCallback(
+    (text, duration = 2500) => {
+      if (messageTimerRef.current) {
+        window.clearTimeout(
+          messageTimerRef.current
+        );
+      }
+
+      setMessage(text);
+
+      messageTimerRef.current =
+        window.setTimeout(() => {
+          setMessage("");
+        }, duration);
+    },
+    []
+  );
+
+  const getContext = useCallback(() => {
     const canvas =
       canvasRef.current;
 
     if (!canvas) {
-      return {
-        x: 0,
-        y: 0,
-      };
+      return null;
     }
 
-    const rectangle =
-      canvas.getBoundingClientRect();
+    return canvas.getContext("2d");
+  }, []);
 
-    return {
-      x:
-        ((event.clientX -
-          rectangle.left) /
-          rectangle.width) *
-        canvas.width,
+  const configureContext =
+    useCallback(
+      (
+        context,
+        selectedTool = tool,
+        selectedColor = color,
+        selectedStrokeWidth =
+          strokeWidth
+      ) => {
+        if (!context) {
+          return;
+        }
 
-      y:
-        ((event.clientY -
-          rectangle.top) /
-          rectangle.height) *
-        canvas.height,
-    };
-  };
+        context.lineCap = "round";
+        context.lineJoin = "round";
 
-  const clearCanvasOnly =
+        context.lineWidth =
+          Number(selectedStrokeWidth) ||
+          3;
+
+        if (
+          selectedTool === "Eraser"
+        ) {
+          context.strokeStyle =
+            "#ffffff";
+
+          context.fillStyle =
+            "#ffffff";
+        } else {
+          context.strokeStyle =
+            selectedColor;
+
+          context.fillStyle =
+            selectedColor;
+        }
+      },
+      [
+        color,
+        strokeWidth,
+        tool,
+      ]
+    );
+
+  const initializeCanvas =
+    useCallback(() => {
+      const canvas =
+        canvasRef.current;
+
+      const canvasArea =
+        canvasAreaRef.current;
+
+      if (!canvas || !canvasArea) {
+        return;
+      }
+
+      const displayWidth =
+        Math.max(
+          canvasArea.clientWidth,
+          300
+        );
+
+      const pixelRatio =
+        window.devicePixelRatio || 1;
+
+      canvas.width =
+        displayWidth * pixelRatio;
+
+      canvas.height =
+        CANVAS_HEIGHT * pixelRatio;
+
+      canvas.style.width =
+        `${displayWidth}px`;
+
+      canvas.style.height =
+        `${CANVAS_HEIGHT}px`;
+
+      const context =
+        canvas.getContext("2d");
+
+      context.setTransform(
+        pixelRatio,
+        0,
+        0,
+        pixelRatio,
+        0,
+        0
+      );
+
+      context.fillStyle = "#ffffff";
+
+      context.fillRect(
+        0,
+        0,
+        displayWidth,
+        CANVAS_HEIGHT
+      );
+    }, []);
+
+  const clearCanvasLocally =
     useCallback(() => {
       const canvas =
         canvasRef.current;
 
       const context =
-        contextRef.current;
+        getContext();
 
       if (!canvas || !context) {
         return;
       }
 
+      const rectangle =
+        canvas.getBoundingClientRect();
+
       context.clearRect(
         0,
         0,
-        canvas.width,
-        canvas.height
+        rectangle.width,
+        rectangle.height
       );
 
-      context.fillStyle =
-        "#ffffff";
+      context.fillStyle = "#ffffff";
 
       context.fillRect(
         0,
         0,
-        canvas.width,
-        canvas.height
+        rectangle.width,
+        rectangle.height
       );
-    }, []);
+    }, [getContext]);
 
-  const drawArrow = useCallback(
-    (
-      context,
-      fromX,
-      fromY,
-      toX,
-      toY
-    ) => {
-      const arrowSize = 16;
-
-      const angle = Math.atan2(
-        toY - fromY,
-        toX - fromX
-      );
-
-      context.beginPath();
-
-      context.moveTo(
-        fromX,
-        fromY
-      );
-
-      context.lineTo(
-        toX,
-        toY
-      );
-
-      context.moveTo(
-        toX,
-        toY
-      );
-
-      context.lineTo(
-        toX -
-          arrowSize *
-            Math.cos(
-              angle -
-                Math.PI / 6
-            ),
-        toY -
-          arrowSize *
-            Math.sin(
-              angle -
-                Math.PI / 6
-            )
-      );
-
-      context.moveTo(
-        toX,
-        toY
-      );
-
-      context.lineTo(
-        toX -
-          arrowSize *
-            Math.cos(
-              angle +
-                Math.PI / 6
-            ),
-        toY -
-          arrowSize *
-            Math.sin(
-              angle +
-                Math.PI / 6
-            )
-      );
-
-      context.stroke();
-      context.closePath();
-    },
-    []
-  );
-
-  const renderDrawing =
+  const drawSavedDrawing =
     useCallback(
       (drawing) => {
         const context =
-          contextRef.current;
+          getContext();
 
-        if (!context) {
+        if (!context || !drawing) {
           return;
         }
 
         const drawingData =
-          drawing?.drawingData;
+          drawing.drawingData || {};
 
-        if (
-          !drawingData ||
-          typeof drawingData !==
-            "object"
-        ) {
-          return;
-        }
-
-        const toolType =
-          drawing.toolType;
+        const drawingTool =
+          drawing.toolType || "Pen";
 
         const drawingColor =
-          drawing.color ||
-          DEFAULT_COLOR;
+          drawing.color || "#111827";
 
         const drawingStrokeWidth =
           Number(
             drawing.strokeWidth
-          ) ||
-          DEFAULT_STROKE_WIDTH;
+          ) || 3;
 
-        context.save();
-
-        context.lineCap = "round";
-        context.lineJoin = "round";
-        context.strokeStyle =
-          drawingColor;
-        context.fillStyle =
-          drawingColor;
-        context.lineWidth =
-          drawingStrokeWidth;
+        configureContext(
+          context,
+          drawingTool,
+          drawingColor,
+          drawingStrokeWidth
+        );
 
         if (
-          toolType === "Pen" ||
-          toolType === "Eraser"
+          drawingTool === "Pen" ||
+          drawingTool === "Eraser"
         ) {
           const points =
             drawingData.points;
 
           if (
-            !Array.isArray(
-              points
-            ) ||
-            points.length === 0
+            !Array.isArray(points) ||
+            points.length < 2
           ) {
-            context.restore();
             return;
           }
 
           context.beginPath();
 
-          context.strokeStyle =
-            toolType === "Eraser"
-              ? "#ffffff"
-              : drawingColor;
-
-          context.lineWidth =
-            toolType === "Eraser"
-              ? ERASER_WIDTH
-              : drawingStrokeWidth;
-
           context.moveTo(
-            Number(points[0].x),
-            Number(points[0].y)
+            points[0].x,
+            points[0].y
           );
 
-          points
-            .slice(1)
-            .forEach(
-              (point) => {
-                context.lineTo(
-                  Number(
-                    point.x
-                  ),
-                  Number(
-                    point.y
-                  )
-                );
-              }
+          for (
+            let index = 1;
+            index < points.length;
+            index += 1
+          ) {
+            context.lineTo(
+              points[index].x,
+              points[index].y
             );
+          }
 
           context.stroke();
           context.closePath();
-          context.restore();
 
           return;
         }
 
         if (
-          toolType === "Shape"
+          drawingTool === "Shape"
         ) {
-          const startX =
-            Number(
-              drawingData.startX
-            );
+          const {
+            x,
+            y,
+            width,
+            height,
+          } = drawingData;
 
-          const startY =
-            Number(
-              drawingData.startY
-            );
+          const validShape = [
+            x,
+            y,
+            width,
+            height,
+          ].every(
+            (value) =>
+              typeof value ===
+                "number" &&
+              Number.isFinite(value)
+          );
 
-          const endX =
-            Number(
-              drawingData.endX
-            );
-
-          const endY =
-            Number(
-              drawingData.endY
-            );
-
-          const width =
-            endX - startX;
-
-          const height =
-            endY - startY;
-
-          if (
-            drawingData.shapeType ===
-            "Rectangle"
-          ) {
-            context.strokeRect(
-              startX,
-              startY,
-              width,
-              height
-            );
+          if (!validShape) {
+            return;
           }
 
-          if (
-            drawingData.shapeType ===
-            "Circle"
-          ) {
-            context.beginPath();
+          context.strokeRect(
+            x,
+            y,
+            width,
+            height
+          );
 
-            context.ellipse(
-              startX +
-                width / 2,
-              startY +
-                height / 2,
-              Math.abs(
-                width / 2
-              ),
-              Math.abs(
-                height / 2
-              ),
-              0,
-              0,
-              Math.PI * 2
-            );
-
-            context.stroke();
-            context.closePath();
-          }
-
-          if (
-            drawingData.shapeType ===
-            "Arrow"
-          ) {
-            drawArrow(
-              context,
-              startX,
-              startY,
-              endX,
-              endY
-            );
-          }
-
-          context.restore();
           return;
         }
 
         if (
-          toolType === "Text"
+          drawingTool === "Text"
         ) {
-          const fontSize =
-            Number(
-              drawingData.fontSize
-            ) || 20;
+          const {
+            x,
+            y,
+            text,
+          } = drawingData;
 
-          const fontWeight =
-            Number(
-              drawingData.fontWeight
-            ) || 600;
-
-          context.fillStyle =
-            drawingColor;
+          if (
+            typeof x !== "number" ||
+            typeof y !== "number" ||
+            typeof text !== "string" ||
+            !text.trim()
+          ) {
+            return;
+          }
 
           context.font =
-            `${fontWeight} ${fontSize}px "Segoe UI", sans-serif`;
+            `${Math.max(
+              drawingStrokeWidth * 6,
+              16
+            )}px Arial`;
 
           context.fillText(
-            String(
-              drawingData.text ||
-                ""
-            ),
-            Number(
-              drawingData.x ||
-                0
-            ),
-            Number(
-              drawingData.y ||
-                0
-            )
+            text,
+            x,
+            y
           );
         }
-
-        context.restore();
       },
-      [drawArrow]
+      [
+        configureContext,
+        getContext,
+      ]
     );
 
-  const loadWhiteboard =
-    useCallback(async () => {
-      if (!sessionId) {
-        setMessage(
-          "Session is unavailable."
-        );
+  const redrawAll = useCallback(
+    (drawingList) => {
+      clearCanvasLocally();
 
-        setIsLoading(false);
-        return;
-      }
-
-      if (
-        !isValidMongoId(
-          sessionId
-        )
-      ) {
-        setMessage(
-          "Invalid classroom session."
-        );
-
-        setIsLoading(false);
-        return;
-      }
-
-      const token = getToken();
-
-      if (!token) {
-        setMessage(
-          "Please login first."
-        );
-
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        setMessage("");
-
-        const response =
-          await fetch(
-            `${API_URL}/${sessionId}`,
-            {
-              method: "GET",
-              headers: {
-                Authorization:
-                  `Bearer ${token}`,
-              },
-            }
+      drawingList.forEach(
+        (drawing) => {
+          drawSavedDrawing(
+            drawing
           );
-
-        const data =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.message ||
-              "Unable to load whiteboard"
-          );
-        }
-
-        if (
-          !Array.isArray(
-            data.drawings
-          )
-        ) {
-          throw new Error(
-            "Invalid whiteboard response"
-          );
-        }
-
-        clearCanvasOnly();
-
-        data.drawings.forEach(
-          (drawing) => {
-            renderDrawing(
-              drawing
-            );
-          }
-        );
-
-        setPendingDrawings([]);
-
-        if (
-          data.drawings.length >
-          0
-        ) {
-          setMessage(
-            "Saved whiteboard loaded."
-          );
-        }
-      } catch (error) {
-        console.error(
-          "Load whiteboard error:",
-          error
-        );
-
-        setMessage(
-          error.message
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    }, [
-      sessionId,
-      clearCanvasOnly,
-      renderDrawing,
-    ]);
-
-  useEffect(() => {
-    const canvas =
-      canvasRef.current;
-
-    if (!canvas) {
-      return undefined;
-    }
-
-    const initializeCanvas =
-      () => {
-        const canvasArea =
-          canvas.parentElement;
-
-        const width =
-          canvasArea
-            ?.getBoundingClientRect()
-            .width || 900;
-
-        canvas.width = Math.max(
-          Math.floor(width),
-          300
-        );
-
-        canvas.height = 620;
-
-        const context =
-          canvas.getContext("2d");
-
-        if (!context) {
-          setMessage(
-            "Unable to initialize canvas."
-          );
-
-          setIsLoading(false);
-          return;
-        }
-
-        context.lineCap =
-          "round";
-
-        context.lineJoin =
-          "round";
-
-        context.lineWidth =
-          DEFAULT_STROKE_WIDTH;
-
-        contextRef.current =
-          context;
-
-        clearCanvasOnly();
-
-        window.requestAnimationFrame(
-          () => {
-            loadWhiteboard();
-          }
-        );
-      };
-
-    initializeCanvas();
-
-    return undefined;
-  }, [
-    sessionId,
-    clearCanvasOnly,
-    loadWhiteboard,
-  ]);
-
-  const sendDrawingToDatabase =
-    async (drawingPayload) => {
-      if (
-        !isValidMongoId(
-          sessionId
-        )
-      ) {
-        throw new Error(
-          "Invalid classroom session."
-        );
-      }
-
-      const token = getToken();
-
-      if (!token) {
-        throw new Error(
-          "Please login before saving."
-        );
-      }
-
-      const response = await fetch(
-        `${API_URL}/save`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            Authorization:
-              `Bearer ${token}`,
-          },
-
-          body: JSON.stringify({
-            sessionId,
-            ...drawingPayload,
-          }),
         }
       );
+    },
+    [
+      clearCanvasLocally,
+      drawSavedDrawing,
+    ]
+  );
 
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message ||
-            "Unable to save drawing"
-        );
-      }
-
-      return data;
-    };
-
-  const saveDrawingAutomatically =
-    async (
-      drawingPayload
-    ) => {
-      try {
-        setIsSaving(true);
-        setMessage(
-          "Saving..."
-        );
-
-        await sendDrawingToDatabase(
-          drawingPayload
-        );
-
-        setMessage(
-          "Saved automatically."
-        );
-
-        return true;
-      } catch (error) {
-        console.error(
-          "Automatic save error:",
-          error
-        );
-
-        setPendingDrawings(
-          (currentDrawings) => [
-            ...currentDrawings,
-            drawingPayload,
-          ]
-        );
-
-        setMessage("");
-
-        return false;
-      } finally {
-        setIsSaving(false);
-      }
-    };
-
-  const savePendingDrawings =
-    async () => {
-      if (
-        pendingDrawings.length ===
-        0
-      ) {
-        setMessage(
-          "Whiteboard is already saved."
-        );
-
-        return;
-      }
-
-      try {
-        setIsSaving(true);
-        setMessage(
-          "Saving..."
-        );
-
-        const failedDrawings = [];
-
-        for (
-          const drawing of
-          pendingDrawings
-        ) {
-          try {
-            await sendDrawingToDatabase(
-              drawing
-            );
-          } catch (error) {
-            console.error(
-              "Pending drawing save error:",
-              error
-            );
-
-            failedDrawings.push(
-              drawing
-            );
-          }
-        }
-
-        setPendingDrawings(
-          failedDrawings
-        );
-
-        if (
-          failedDrawings.length ===
-          0
-        ) {
-          setMessage(
-            "Whiteboard saved successfully."
-          );
-        } else {
-          setMessage("");
-        }
-      } finally {
-        setIsSaving(false);
-      }
-    };
-
-  const startDrawing =
-    async (event) => {
-      if (isSaving) {
-        return;
-      }
-
+  const getPointerPosition =
+    useCallback((event) => {
       const canvas =
         canvasRef.current;
 
-      const context =
-        contextRef.current;
-
-      if (!canvas || !context) {
-        return;
+      if (!canvas) {
+        return {
+          x: 0,
+          y: 0,
+        };
       }
 
-      const position =
-        getPosition(event);
+      const rectangle =
+        canvas.getBoundingClientRect();
 
-      if (tool === "text") {
-        const text =
-          window.prompt(
-            "Enter text:"
+      return {
+        x:
+          event.clientX -
+          rectangle.left,
+
+        y:
+          event.clientY -
+          rectangle.top,
+      };
+    }, []);
+
+  const loadDrawings =
+    useCallback(
+      async ({
+        showLoader = false,
+        showSuccess = false,
+      } = {}) => {
+        if (!sessionId) {
+          showMessage(
+            "Session ID is missing"
           );
 
-        if (!text?.trim()) {
           return;
         }
 
-        const drawingPayload = {
-          drawingData: {
-            text: text.trim(),
-            x: position.x,
-            y: position.y,
-            fontSize: 20,
-            fontWeight: 600,
-          },
+        if (!token) {
+          showMessage(
+            "Authentication token is missing. Please login again."
+          );
 
-          toolType: "Text",
-          color,
-          strokeWidth,
-        };
+          return;
+        }
 
-        context.fillStyle =
-          color;
+        try {
+          if (showLoader) {
+            setLoading(true);
+          }
 
-        context.font =
-          '600 20px "Segoe UI", sans-serif';
+          const response =
+            await fetch(
+              `${API_URL}/${sessionId}`,
+              {
+                method: "GET",
 
-        context.fillText(
-          text.trim(),
+                headers: {
+                  Authorization:
+                    `Bearer ${token}`,
+                },
+              }
+            );
+
+          const data =
+            await response.json();
+
+          if (!response.ok) {
+            throw new Error(
+              data.message ||
+                "Unable to load whiteboard drawings"
+            );
+          }
+
+          const drawings =
+            Array.isArray(
+              data.drawings
+            )
+              ? data.drawings
+              : [];
+
+          savedDrawingsRef.current =
+            drawings;
+
+          redrawAll(drawings);
+
+          if (showSuccess) {
+            showMessage(
+              "Whiteboard saved successfully"
+            );
+          }
+        } catch (error) {
+          console.error(
+            "Load whiteboard error:",
+            error
+          );
+
+          showMessage(
+            error.message ||
+              "Unable to load whiteboard"
+          );
+        } finally {
+          if (showLoader) {
+            setLoading(false);
+          }
+        }
+      },
+      [
+        redrawAll,
+        sessionId,
+        showMessage,
+        token,
+      ]
+    );
+
+  const saveDrawing =
+    useCallback(
+      async (
+        drawingData,
+        selectedTool
+      ) => {
+        if (!sessionId) {
+          showMessage(
+            "Session ID is missing"
+          );
+
+          return null;
+        }
+
+        if (!token) {
+          showMessage(
+            "Authentication token is missing"
+          );
+
+          return null;
+        }
+
+        try {
+          setSaving(true);
+
+          const response =
+            await fetch(
+              `${API_URL}/save`,
+              {
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json",
+
+                  Authorization:
+                    `Bearer ${token}`,
+                },
+
+                body: JSON.stringify({
+                  sessionId,
+                  drawingData,
+                  toolType:
+                    selectedTool,
+                  color,
+                  strokeWidth,
+                }),
+              }
+            );
+
+          const data =
+            await response.json();
+
+          if (!response.ok) {
+            throw new Error(
+              data.message ||
+                "Unable to save drawing"
+            );
+          }
+
+          const savedDrawing =
+            data.whiteboard;
+
+          if (savedDrawing) {
+            savedDrawingsRef.current =
+              [
+                ...savedDrawingsRef.current,
+                savedDrawing,
+              ];
+          }
+
+          return savedDrawing;
+        } catch (error) {
+          console.error(
+            "Save drawing error:",
+            error
+          );
+
+          showMessage(
+            error.message ||
+              "Unable to save drawing"
+          );
+
+          return null;
+        } finally {
+          setSaving(false);
+        }
+      },
+      [
+        color,
+        sessionId,
+        showMessage,
+        strokeWidth,
+        token,
+      ]
+    );
+
+  const beginDrawing =
+    useCallback(
+      (event) => {
+        event.preventDefault();
+
+        const canvas =
+          canvasRef.current;
+
+        if (!canvas || saving) {
+          return;
+        }
+
+        canvas.setPointerCapture?.(
+          event.pointerId
+        );
+
+        const position =
+          getPointerPosition(
+            event
+          );
+
+        if (tool === "Text") {
+          const enteredText =
+            window.prompt(
+              "Enter text"
+            );
+
+          const text =
+            enteredText?.trim();
+
+          if (!text) {
+            return;
+          }
+
+          const context =
+            getContext();
+
+          configureContext(
+            context
+          );
+
+          context.font =
+            `${Math.max(
+              strokeWidth * 6,
+              16
+            )}px Arial`;
+
+          context.fillText(
+            text,
+            position.x,
+            position.y
+          );
+
+          void saveDrawing(
+            {
+              x: position.x,
+              y: position.y,
+              text,
+            },
+            "Text"
+          );
+
+          return;
+        }
+
+        isDrawingRef.current =
+          true;
+
+        startPointRef.current =
+          position;
+
+        pointsRef.current =
+          [position];
+
+        const context =
+          getContext();
+
+        configureContext(
+          context
+        );
+
+        if (tool === "Shape") {
+          return;
+        }
+
+        context.beginPath();
+
+        context.moveTo(
+          position.x,
+          position.y
+        );
+      },
+      [
+        configureContext,
+        getContext,
+        getPointerPosition,
+        saveDrawing,
+        saving,
+        strokeWidth,
+        tool,
+      ]
+    );
+
+  const continueDrawing =
+    useCallback(
+      (event) => {
+        if (
+          !isDrawingRef.current
+        ) {
+          return;
+        }
+
+        event.preventDefault();
+
+        if (tool === "Shape") {
+          return;
+        }
+
+        const context =
+          getContext();
+
+        if (!context) {
+          return;
+        }
+
+        const position =
+          getPointerPosition(
+            event
+          );
+
+        configureContext(
+          context
+        );
+
+        pointsRef.current.push(
+          position
+        );
+
+        context.lineTo(
           position.x,
           position.y
         );
 
-        await saveDrawingAutomatically(
-          drawingPayload
-        );
+        context.stroke();
+      },
+      [
+        configureContext,
+        getContext,
+        getPointerPosition,
+        tool,
+      ]
+    );
 
-        return;
-      }
-
-      event.currentTarget
-        .setPointerCapture(
-          event.pointerId
-        );
-
-      setStartPosition(
-        position
-      );
-
-      currentPointsRef.current = [
-        position,
-      ];
-
-      snapshotRef.current =
-        context.getImageData(
-          0,
-          0,
-          canvas.width,
-          canvas.height
-        );
-
-      setIsDrawing(true);
-
-      context.beginPath();
-
-      context.moveTo(
-        position.x,
-        position.y
-      );
-    };
-
-  const draw = (event) => {
-    if (!isDrawing) {
-      return;
-    }
-
-    const context =
-      contextRef.current;
-
-    if (!context) {
-      return;
-    }
-
-    const position =
-      getPosition(event);
-
-    context.strokeStyle =
-      tool === "eraser"
-        ? "#ffffff"
-        : color;
-
-    context.lineWidth =
-      tool === "eraser"
-        ? ERASER_WIDTH
-        : strokeWidth;
-
-    context.lineCap = "round";
-    context.lineJoin = "round";
-
-    if (
-      tool === "pen" ||
-      tool === "eraser"
-    ) {
-      currentPointsRef.current.push(
-        position
-      );
-
-      context.lineTo(
-        position.x,
-        position.y
-      );
-
-      context.stroke();
-
-      return;
-    }
-
-    if (
-      snapshotRef.current
-    ) {
-      context.putImageData(
-        snapshotRef.current,
-        0,
-        0
-      );
-    }
-
-    context.strokeStyle =
-      color;
-
-    context.lineWidth =
-      strokeWidth;
-
-    const width =
-      position.x -
-      startPosition.x;
-
-    const height =
-      position.y -
-      startPosition.y;
-
-    if (
-      tool === "rectangle"
-    ) {
-      context.strokeRect(
-        startPosition.x,
-        startPosition.y,
-        width,
-        height
-      );
-    }
-
-    if (
-      tool === "circle"
-    ) {
-      context.beginPath();
-
-      context.ellipse(
-        startPosition.x +
-          width / 2,
-        startPosition.y +
-          height / 2,
-        Math.abs(
-          width / 2
-        ),
-        Math.abs(
-          height / 2
-        ),
-        0,
-        0,
-        Math.PI * 2
-      );
-
-      context.stroke();
-    }
-
-    if (tool === "arrow") {
-      drawArrow(
-        context,
-        startPosition.x,
-        startPosition.y,
-        position.x,
-        position.y
-      );
-    }
-  };
-
-  const stopDrawing =
-    async (event) => {
-      if (!isDrawing) {
-        return;
-      }
-
-      setIsDrawing(false);
-
-      const context =
-        contextRef.current;
-
-      context?.closePath();
-
-      const endPosition =
-        getPosition(event);
-
-      let drawingPayload =
-        null;
-
-      if (
-        tool === "pen" ||
-        tool === "eraser"
-      ) {
-        const points =
-          currentPointsRef.current;
-
+  const endDrawing =
+    useCallback(
+      (event) => {
         if (
-          points.length < 2
+          !isDrawingRef.current
         ) {
           return;
         }
 
-        drawingPayload = {
-          drawingData: {
-            points,
-          },
+        event.preventDefault();
 
-          toolType:
-            tool === "pen"
-              ? "Pen"
-              : "Eraser",
+        isDrawingRef.current =
+          false;
 
-          color:
-            tool === "eraser"
-              ? "#ffffff"
-              : color,
+        const canvas =
+          canvasRef.current;
 
-          strokeWidth:
-            tool === "eraser"
-              ? ERASER_WIDTH
-              : strokeWidth,
-        };
-      }
+        canvas?.releasePointerCapture?.(
+          event.pointerId
+        );
 
-      if (
-        tool === "rectangle" ||
-        tool === "circle" ||
-        tool === "arrow"
-      ) {
-        const shapeTypes = {
-          rectangle:
-            "Rectangle",
+        const context =
+          getContext();
 
-          circle: "Circle",
+        if (!context) {
+          return;
+        }
 
-          arrow: "Arrow",
-        };
+        if (tool === "Shape") {
+          const startPoint =
+            startPointRef.current;
 
-        drawingPayload = {
-          drawingData: {
-            shapeType:
-              shapeTypes[tool],
+          const endPoint =
+            getPointerPosition(
+              event
+            );
 
-            startX:
-              startPosition.x,
+          if (startPoint) {
+            const drawingData = {
+              x: startPoint.x,
+              y: startPoint.y,
 
-            startY:
-              startPosition.y,
+              width:
+                endPoint.x -
+                startPoint.x,
 
-            endX:
-              endPosition.x,
+              height:
+                endPoint.y -
+                startPoint.y,
+            };
 
-            endY:
-              endPosition.y,
-          },
+            configureContext(
+              context
+            );
 
-          toolType: "Shape",
-          color,
-          strokeWidth,
-        };
-      }
+            context.strokeRect(
+              drawingData.x,
+              drawingData.y,
+              drawingData.width,
+              drawingData.height
+            );
 
-      if (!drawingPayload) {
-        return;
-      }
+            void saveDrawing(
+              drawingData,
+              "Shape"
+            );
+          }
+        } else {
+          context.closePath();
 
-      await saveDrawingAutomatically(
-        drawingPayload
-      );
-    };
+          const points = [
+            ...pointsRef.current,
+          ];
+
+          if (points.length > 1) {
+            void saveDrawing(
+              {
+                points,
+              },
+              tool
+            );
+          }
+        }
+
+        startPointRef.current =
+          null;
+
+        pointsRef.current = [];
+      },
+      [
+        configureContext,
+        getContext,
+        getPointerPosition,
+        saveDrawing,
+        tool,
+      ]
+    );
+
+  const handleSave =
+    useCallback(async () => {
+      await loadDrawings({
+        showLoader: true,
+        showSuccess: true,
+      });
+    }, [loadDrawings]);
 
   const clearWhiteboard =
-    async () => {
-      if (!sessionId) {
-        setMessage(
-          "Session is unavailable."
+    useCallback(async () => {
+      if (!canClear) {
+        showMessage(
+          "Only the assigned trainer can clear the whiteboard"
         );
 
         return;
       }
 
-      const shouldClear =
+      const confirmed =
         window.confirm(
-          "Only the assigned trainer can clear the whiteboard. Continue?"
+          "Are you sure you want to clear the entire whiteboard?"
         );
 
-      if (!shouldClear) {
-        return;
-      }
-
-      const token = getToken();
-
-      if (!token) {
-        setMessage(
-          "Please login first."
-        );
-
+      if (!confirmed) {
         return;
       }
 
       try {
-        setIsSaving(true);
-        setMessage(
-          "Clearing whiteboard..."
-        );
+        setSaving(true);
 
         const response =
           await fetch(
@@ -1127,11 +914,13 @@ function Whiteboard({ sessionId }) {
           );
         }
 
-        clearCanvasOnly();
-        setPendingDrawings([]);
+        savedDrawingsRef.current =
+          [];
 
-        setMessage(
-          "Whiteboard cleared successfully."
+        clearCanvasLocally();
+
+        showMessage(
+          "Whiteboard cleared successfully"
         );
       } catch (error) {
         console.error(
@@ -1139,52 +928,102 @@ function Whiteboard({ sessionId }) {
           error
         );
 
-        setMessage(
-          error.message
+        showMessage(
+          error.message ||
+            "Unable to clear whiteboard"
         );
       } finally {
-        setIsSaving(false);
+        setSaving(false);
       }
+    }, [
+      canClear,
+      clearCanvasLocally,
+      sessionId,
+      showMessage,
+      token,
+    ]);
+
+  /*
+   * Initialize the canvas first and then
+   * retrieve saved drawings from MongoDB.
+   *
+   * This prevents canvas resizing from
+   * removing drawings after page reload.
+   */
+  useEffect(() => {
+    const frameId =
+      window.requestAnimationFrame(
+        () => {
+          initializeCanvas();
+
+          window.requestAnimationFrame(
+            () => {
+              void loadDrawings({
+                showLoader: true,
+                showSuccess: false,
+              });
+            }
+          );
+        }
+      );
+
+    const handleResize = () => {
+      initializeCanvas();
+
+      window.requestAnimationFrame(
+        () => {
+          redrawAll(
+            savedDrawingsRef.current
+          );
+        }
+      );
     };
 
-  const tools = [
-    {
-      value: "pen",
-      label: "Pen",
-    },
-    {
-      value: "eraser",
-      label: "Eraser",
-    },
-    {
-      value: "rectangle",
-      label: "Rectangle",
-    },
-    {
-      value: "circle",
-      label: "Circle",
-    },
-    {
-      value: "arrow",
-      label: "Arrow",
-    },
-    {
-      value: "text",
-      label: "Text",
-    },
-  ];
+    window.addEventListener(
+      "resize",
+      handleResize
+    );
+
+    return () => {
+      window.cancelAnimationFrame(
+        frameId
+      );
+
+      window.removeEventListener(
+        "resize",
+        handleResize
+      );
+    };
+  }, [
+    initializeCanvas,
+    loadDrawings,
+    redrawAll,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (
+        messageTimerRef.current
+      ) {
+        window.clearTimeout(
+          messageTimerRef.current
+        );
+      }
+    };
+  }, []);
 
   return (
-    <div className="whiteboard-container">
-      <div className="whiteboard-header">
+    <section className="whiteboard-container">
+      <header className="whiteboard-header">
         <div>
           <h2>
-            Interactive Whiteboard
+            Collaborative Whiteboard
           </h2>
 
           <p>
-            Draw and collaborate during
-            the live classroom.
+            Trainers and students can
+            draw together during the
+            live session.
           </p>
         </div>
 
@@ -1193,33 +1032,25 @@ function Whiteboard({ sessionId }) {
             {message}
           </p>
         )}
-      </div>
+      </header>
 
       <div className="toolbar">
-        {tools.map(
-          (toolItem) => (
+        {TOOLS.map(
+          (toolName) => (
             <button
-              key={
-                toolItem.value
-              }
+              key={toolName}
               type="button"
               className={
-                tool ===
-                toolItem.value
+                tool === toolName
                   ? "active-tool"
                   : ""
               }
-              onClick={() =>
-                setTool(
-                  toolItem.value
-                )
-              }
-              disabled={
-                isLoading ||
-                isSaving
-              }
+              onClick={() => {
+                setTool(toolName);
+              }}
+              disabled={saving}
             >
-              {toolItem.label}
+              {toolName}
             </button>
           )
         )}
@@ -1230,15 +1061,14 @@ function Whiteboard({ sessionId }) {
           <input
             type="color"
             value={color}
-            disabled={
-              tool === "eraser" ||
-              isLoading ||
-              isSaving
-            }
-            onChange={(event) =>
+            onChange={(event) => {
               setColor(
                 event.target.value
-              )
+              );
+            }}
+            disabled={
+              tool === "Eraser" ||
+              saving
             }
           />
         </label>
@@ -1251,18 +1081,14 @@ function Whiteboard({ sessionId }) {
             min="1"
             max="20"
             value={strokeWidth}
-            disabled={
-              tool === "eraser" ||
-              isLoading ||
-              isSaving
-            }
-            onChange={(event) =>
+            onChange={(event) => {
               setStrokeWidth(
                 Number(
                   event.target.value
                 )
-              )
-            }
+              );
+            }}
+            disabled={saving}
           />
 
           <span>
@@ -1273,68 +1099,63 @@ function Whiteboard({ sessionId }) {
         <div className="toolbar-actions">
           <button
             type="button"
-            className="save-btn"
-            onClick={
-              savePendingDrawings
-            }
+            className="reload-btn"
+            onClick={() => {
+              void handleSave();
+            }}
             disabled={
-              isSaving ||
-              isLoading
+              loading || saving
             }
           >
-            {isSaving
+            {loading
               ? "Saving..."
               : "Save"}
           </button>
 
-          <button
-            type="button"
-            className="clear-btn"
-            onClick={
-              clearWhiteboard
-            }
-            disabled={
-              isSaving ||
-              isLoading
-            }
-          >
-            Clear
-          </button>
+          {canClear && (
+            <button
+              type="button"
+              className="clear-btn"
+              onClick={() => {
+                void clearWhiteboard();
+              }}
+              disabled={
+                loading || saving
+              }
+            >
+              Clear
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="canvas-area">
+      <div
+        ref={canvasAreaRef}
+        className="canvas-area"
+      >
         <canvas
           ref={canvasRef}
           onPointerDown={
-            startDrawing
+            beginDrawing
           }
-          onPointerMove={draw}
+          onPointerMove={
+            continueDrawing
+          }
           onPointerUp={
-            stopDrawing
+            endDrawing
           }
           onPointerCancel={
-            stopDrawing
-          }
-          onPointerLeave={
-            stopDrawing
+            endDrawing
           }
         />
 
-        {isLoading && (
+        {saving && (
           <div className="saving-overlay">
-            Loading whiteboard...
+            Saving drawing...
           </div>
         )}
-
-        {!isLoading &&
-          isSaving && (
-            <div className="saving-overlay">
-              Saving whiteboard...
-            </div>
-          )}
       </div>
-    </div>
+    </section>
   );
 }
 

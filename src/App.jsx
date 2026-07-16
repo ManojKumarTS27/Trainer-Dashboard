@@ -5,22 +5,22 @@ import {
   Routes,
 } from "react-router-dom";
 
-import Login from "./Features/Login&out/Login";
-import Register from "./Features/Login&out/Register";
+import Login from "./Features/Login&out/Login.jsx";
+import Register from "./Features/Login&out/Register.jsx";
 
-import TrainerDashboard from "./Features/Trainer/TrainerDashboard";
+import TrainerDashboard from "./Features/Trainer/TrainerDashboard.jsx";
 
-import RecordingDashboard from "./Features/Recordings/RecordingDashboard";
-import SessionRecordings from "./Features/Recordings/SessionRecordings";
-import UploadRecordingModal from "./Features/Recordings/UploadRecordingModal";
+import RecordingDashboard from "./Features/Recordings/RecordingDashboard.jsx";
+import SessionRecordings from "./Features/Recordings/SessionRecordings.jsx";
+import UploadRecordingModal from "./Features/Recordings/UploadRecordingModal.jsx";
 
-import SessionManagement from "./Features/Sessions/SessionManagement";
-import AttendancePage from "./Features/Attendance/AttendancePage";
+import SessionManagement from "./Features/Sessions/SessionManagement.jsx";
+import AttendancePage from "./Features/Attendance/AttendancePage.jsx";
 
-import DigitalClassroom from "./Features/DigitalClassroom/DigitalClassroom";
+import DigitalClassroom from "./Features/DigitalClassroom/DigitalClassroom.jsx";
 
-import AccessDenied from "./Features/Role&Acess/AccessDenied";
-import RoleProtectedRoute from "./Features/Role&Acess/RoleProtectedRoute";
+import AccessDenied from "./Features/Role&Acess/AccessDenied.jsx";
+import RoleProtectedRoute from "./Features/Role&Acess/RoleProtectedRoute.jsx";
 
 const dashboardRoutes = {
   Student: "/student-dashboard",
@@ -32,23 +32,43 @@ const dashboardRoutes = {
 
 function getStoredUser() {
   try {
-    return JSON.parse(
-      localStorage.getItem("authUser") || "null"
+    const storedUser =
+      localStorage.getItem("authUser");
+
+    if (!storedUser) {
+      return null;
+    }
+
+    return JSON.parse(storedUser);
+  } catch (error) {
+    console.error(
+      "Unable to read authenticated user:",
+      error
     );
-  } catch {
+
+    localStorage.removeItem("authUser");
+
     return null;
   }
 }
 
 function HomeRedirect() {
-  const token = localStorage.getItem("token");
+  const token =
+    localStorage.getItem("token");
+
   const user = getStoredUser();
 
   if (!token || !user?.role) {
-    return <Navigate to="/login" replace />;
+    return (
+      <Navigate
+        to="/login"
+        replace
+      />
+    );
   }
 
-  const dashboardPath = dashboardRoutes[user.role];
+  const dashboardPath =
+    dashboardRoutes[user.role];
 
   if (!dashboardPath) {
     return (
@@ -67,7 +87,7 @@ function HomeRedirect() {
   );
 }
 
-function Dashboard() {
+function DashboardPage() {
   return <TrainerDashboard />;
 }
 
@@ -109,7 +129,7 @@ function App() {
                 "Admin",
               ]}
             >
-              <Dashboard />
+              <DashboardPage />
             </RoleProtectedRoute>
           }
         />
@@ -123,7 +143,7 @@ function App() {
                 "Admin",
               ]}
             >
-              <Dashboard />
+              <DashboardPage />
             </RoleProtectedRoute>
           }
         />
@@ -137,7 +157,7 @@ function App() {
                 "Admin",
               ]}
             >
-              <Dashboard />
+              <DashboardPage />
             </RoleProtectedRoute>
           }
         />
@@ -151,7 +171,7 @@ function App() {
                 "Admin",
               ]}
             >
-              <Dashboard />
+              <DashboardPage />
             </RoleProtectedRoute>
           }
         />
@@ -162,7 +182,7 @@ function App() {
             <RoleProtectedRoute
               allowedRoles={["Admin"]}
             >
-              <Dashboard />
+              <DashboardPage />
             </RoleProtectedRoute>
           }
         />

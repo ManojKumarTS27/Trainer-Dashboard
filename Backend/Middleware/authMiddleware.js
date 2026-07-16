@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
-import User from "../Models/User.js";
 import process from "node:process";
+
+import User from "../Models/User.js";
 
 export const authenticateUser = async (
   req,
@@ -8,15 +9,8 @@ export const authenticateUser = async (
   next
 ) => {
   try {
-    console.log("All request headers:", req.headers);
-
     const authHeader =
       req.headers.authorization;
-
-    console.log(
-      "Authorization header:",
-      authHeader
-    );
 
     if (
       !authHeader ||
@@ -24,21 +18,34 @@ export const authenticateUser = async (
     ) {
       return res.status(401).json({
         success: false,
-        message: "Authentication required",
+        message:
+          "Authentication required. Provide a Bearer token.",
       });
     }
 
-    const token = authHeader.split(" ")[1];
+    const token =
+      authHeader.substring(7).trim();
 
-    console.log(
-      "Token received:",
-      token ? "Yes" : "No"
-    );
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication token is missing",
+      });
+    }
 
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET
     );
+
+    if (!decoded.userId) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Invalid authentication token",
+      });
+    }
 
     const user = await User.findById(
       decoded.userId
@@ -47,7 +54,8 @@ export const authenticateUser = async (
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "User not found",
+        message:
+          "User associated with this token was not found",
       });
     }
 
@@ -66,14 +74,17 @@ export const authenticateUser = async (
       role: user.role,
     };
 
-    next();
+    return next();
   } catch (error) {
     console.error(
       "Authentication error:",
       error.message
     );
 
-    if (error.name === "TokenExpiredError") {
+    if (
+      error.name ===
+      "TokenExpiredError"
+    ) {
       return res.status(401).json({
         success: false,
         message:
@@ -81,10 +92,21 @@ export const authenticateUser = async (
       });
     }
 
-    return res.status(401).json({
+    if (
+      error.name ===
+      "JsonWebTokenError"
+    ) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Invalid authentication token",
+      });
+    }
+
+    return res.status(500).json({
       success: false,
       message:
-        "Invalid authentication token",
+        "Authentication service error",
     });
   }
 };
