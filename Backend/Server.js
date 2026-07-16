@@ -5,10 +5,11 @@ import process from "node:process";
 
 import connectDB from "./Config/db.js";
 
-import authRoutes from "./Routes/authRoutes.js";
-import protectedRoutes from "./Routes/protectedRoutes.js";
 import attendanceRoutes from "./Routes/attendanceRoutes.js";
+import authRoutes from "./Routes/authRoutes.js";
 import chatRoutes from "./Routes/chatRoutes.js";
+import protectedRoutes from "./Routes/protectedRoutes.js";
+import whiteboardRoutes from "./Routes/whiteboardRoutes.js";
 
 import Session from "./Models/Session.js";
 
@@ -16,30 +17,29 @@ dotenv.config();
 
 const app = express();
 
-const PORT = process.env.PORT || 5000;
+const PORT =
+  process.env.PORT || 5000;
 
+/* Middleware */
 
 app.use(
   cors({
     origin: "http://localhost:5173",
-
     credentials: true,
-
     methods: [
       "GET",
       "POST",
       "PUT",
       "PATCH",
       "DELETE",
+      "OPTIONS",
     ],
-
     allowedHeaders: [
       "Content-Type",
       "Authorization",
     ],
   })
 );
-
 
 app.use(
   express.json({
@@ -54,6 +54,7 @@ app.use(
   })
 );
 
+/* Health check */
 
 app.get("/", (req, res) => {
   return res.status(200).json({
@@ -63,30 +64,34 @@ app.get("/", (req, res) => {
   });
 });
 
+/* API routes */
 
 app.use(
   "/api/auth",
   authRoutes
 );
 
-
 app.use(
   "/api/protected",
   protectedRoutes
 );
-
 
 app.use(
   "/api/attendance",
   attendanceRoutes
 );
 
-
 app.use(
   "/api/chat",
   chatRoutes
 );
 
+app.use(
+  "/api/whiteboard",
+  whiteboardRoutes
+);
+
+/* Temporary session testing routes */
 
 app.get(
   "/api/test/sessions",
@@ -112,16 +117,10 @@ app.get(
           sessions.length > 0
             ? "Sessions retrieved successfully"
             : "No sessions found",
-
-        database:
-          process.env.MONGO_URI,
-
         connectedDatabase:
           Session.db.name,
-
         count:
           sessions.length,
-
         sessions,
       });
     } catch (error) {
@@ -134,22 +133,18 @@ app.get(
         success: false,
         message:
           "Unable to retrieve sessions",
-
-        error:
-          error.message,
+        error: error.message,
       });
     }
   }
 );
 
-
 app.get(
   "/api/test/sessions/:sessionId",
   async (req, res) => {
     try {
-      const {
-        sessionId,
-      } = req.params;
+      const { sessionId } =
+        req.params;
 
       const session =
         await Session.findById(
@@ -169,10 +164,8 @@ app.get(
           success: false,
           message:
             "Session not found",
-
           receivedSessionId:
             sessionId,
-
           connectedDatabase:
             Session.db.name,
         });
@@ -205,28 +198,25 @@ app.get(
         success: false,
         message:
           "Unable to retrieve session",
-        error:
-          error.message,
+        error: error.message,
       });
     }
   }
 );
 
+/* 404 handler */
 
 app.use((req, res) => {
   return res.status(404).json({
     success: false,
     message:
       "API route not found",
-
-    method:
-      req.method,
-
-    path:
-      req.originalUrl,
+    method: req.method,
+    path: req.originalUrl,
   });
 });
 
+/* Global error handler */
 
 app.use(
   (
@@ -240,10 +230,30 @@ app.use(
       error
     );
 
-    if (
-      res.headersSent
-    ) {
+    if (res.headersSent) {
       return next(error);
+    }
+
+    if (
+      error.type ===
+      "entity.too.large"
+    ) {
+      return res.status(413).json({
+        success: false,
+        message:
+          "Request payload is too large",
+      });
+    }
+
+    if (
+      error instanceof
+      SyntaxError
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid JSON request body",
+      });
     }
 
     if (
@@ -254,7 +264,6 @@ app.use(
         success: false,
         message:
           "Validation failed",
-
         errors:
           Object.values(
             error.errors
@@ -273,7 +282,8 @@ app.use(
     ) {
       return res.status(400).json({
         success: false,
-        message: `Invalid ${error.path}`,
+        message:
+          `Invalid ${error.path}`,
       });
     }
 
@@ -285,6 +295,7 @@ app.use(
   }
 );
 
+/* Start server */
 
 const startServer = async () => {
   try {
